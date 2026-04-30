@@ -37,7 +37,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--gray-1);color:var(--
 /* 모달 */
 .modal-bg{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px;}
 .modal-bg.open{display:flex;}
-.modal{background:#fff;border-radius:12px;width:100%;max-width:560px;max-height:80vh;overflow:auto;box-shadow:0 12px 40px rgba(0,0,0,.2);}
+.modal{background:#fff;border-radius:12px;width:100%;max-width:640px;max-height:80vh;overflow:auto;box-shadow:0 12px 40px rgba(0,0,0,.2);}
 .modal-header{padding:18px 22px;border-bottom:1px solid var(--gray-2);display:flex;justify-content:space-between;align-items:center;}
 .modal-title{font-size:16px;font-weight:700;color:var(--gray-7);}
 .modal-close{background:none;border:none;font-size:20px;color:var(--gray-5);cursor:pointer;font-family:inherit;}
@@ -50,10 +50,13 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--gray-1);color:var(--
 .um-btn{padding:5px 10px;border:1.5px solid var(--gray-3);border-radius:5px;background:#fff;font-size:11px;font-weight:500;cursor:pointer;color:var(--gray-6);font-family:inherit;}
 .um-btn:hover{border-color:var(--blue);color:var(--blue);}
 .um-btn.danger:hover{border-color:var(--red);color:var(--red);}
-.um-add-form{display:grid;grid-template-columns:1fr 1fr 110px 80px;gap:8px;align-items:center;padding-top:12px;border-top:1px solid var(--gray-2);}
-.um-input{border:1.5px solid var(--gray-3);border-radius:6px;padding:8px 10px;font-size:13px;font-family:inherit;}
+.um-add-form{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding-top:12px;border-top:1px solid var(--gray-2);}
+.um-add-form > .um-input.id-field{flex:1 1 140px;min-width:120px;}
+.um-add-form > .um-input.pw-field{flex:1 1 140px;min-width:120px;}
+.um-add-form > .um-input.role-field{flex:0 0 110px;}
+.um-input{border:1.5px solid var(--gray-3);border-radius:6px;padding:8px 10px;font-size:13px;font-family:inherit;width:100%;box-sizing:border-box;}
 .um-input:focus{outline:none;border-color:var(--blue);}
-.um-add-btn{background:var(--blue);color:#fff;border:none;border-radius:6px;padding:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
+.um-add-btn{background:var(--blue);color:#fff;border:none;border-radius:6px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;flex:0 0 auto;white-space:nowrap;}
 .um-add-btn:hover{background:var(--blue-mid);}
 
 .main{max-width:1280px;margin:0 auto;padding:24px 20px;}
@@ -398,9 +401,9 @@ td{padding:11px 14px;font-size:13px;color:var(--gray-7);}
     <div class="modal-body">
       <div class="user-list" id="userList"></div>
       <form class="um-add-form" onsubmit="addUser(event)">
-        <input type="text" class="um-input" id="newUserId" placeholder="새 ID" required>
-        <input type="password" class="um-input" id="newUserPw" placeholder="비밀번호 (4자+)" required>
-        <select class="um-input" id="newUserRole">
+        <input type="text" class="um-input id-field" id="newUserId" placeholder="새 ID" required>
+        <input type="password" class="um-input pw-field" id="newUserPw" placeholder="비밀번호 (4자+)" required>
+        <select class="um-input role-field" id="newUserRole">
           <option value="user">일반 사용자</option>
           <option value="admin">관리자</option>
         </select>
