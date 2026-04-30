@@ -55,7 +55,7 @@
         },
         "daily": {
           "below": {
-            "value": null,
+            "value": 1000,
             "color": ""
           },
           "between": {
