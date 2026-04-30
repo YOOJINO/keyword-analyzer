@@ -50,7 +50,7 @@
           },
           "above": {
             "value": 10000,
-            "color": ""
+            "color": "red"
           }
         },
         "daily": {
