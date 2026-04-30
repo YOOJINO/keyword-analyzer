@@ -61,7 +61,7 @@
           "between": {
             "from": null,
             "to": null,
-            "color": ""
+            "color": "green"
           },
           "above": {
             "value": null,
