@@ -78,6 +78,22 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--gray-1);color:var(--
 .action-btn{padding:7px 14px;border:1.5px solid var(--gray-3);border-radius:7px;background:#fff;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;color:var(--gray-6);transition:all .15s;}
 .action-btn:hover{border-color:var(--blue);color:var(--blue);}
 
+/* 보기 옵션 */
+.view-options{background:#fff;border:1px solid var(--gray-3);border-radius:10px;padding:18px 22px;margin-bottom:14px;box-shadow:var(--shadow);}
+.vo-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.vo-title{font-size:15px;font-weight:700;color:var(--gray-7);}
+.vo-reset{font-size:12px;color:var(--gray-5);cursor:pointer;border:none;background:none;font-family:inherit;text-decoration:underline;}
+.vo-reset:hover{color:var(--blue);}
+.vo-desc{font-size:13px;color:var(--gray-6);margin-bottom:14px;}
+.vo-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px 16px;padding:14px 18px;border:1px solid var(--gray-3);border-radius:8px;margin-bottom:14px;}
+.vo-check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--gray-7);cursor:pointer;}
+.vo-check input{accent-color:var(--blue);width:16px;height:16px;cursor:pointer;}
+.vo-actions{display:flex;gap:10px;}
+.vo-btn{flex:1;padding:11px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;border:1.5px solid var(--gray-3);background:var(--gray-1);color:var(--gray-7);}
+.vo-btn:hover{border-color:var(--blue);}
+.vo-btn.primary{background:var(--blue);color:#fff;border-color:var(--blue);}
+.vo-btn.primary:hover{background:var(--blue-mid);border-color:var(--blue-mid);}
+
 /* 테이블 */
 .table-wrap{background:var(--white);border:1px solid var(--gray-3);border-radius:var(--radius);overflow:auto;box-shadow:var(--shadow);}
 table{width:100%;border-collapse:collapse;min-width:800px;}
@@ -443,6 +459,22 @@ const CAT_DATA = {
 
 let currentSeeds = [];
 let lastResults = [];
+
+// 컬럼 정의: fixed=항상표시, default=초기 체크 상태
+const COLUMN_CONFIG = [
+  { key: 'rank', label: '순위', fixed: true },
+  { key: 'keyword', label: '키워드', fixed: true },
+  { key: 'category', label: '대표 카테고리', default: true },
+  { key: 'classification', label: '키워드 분류' },
+  { key: 'totalSearch', label: '검색수', default: true },
+  { key: 'pcSearch', label: 'PC 검색수' },
+  { key: 'mobileSearch', label: '모바일 검색수' },
+  { key: 'pcRatio', label: 'PC/모바일 비율' },
+  { key: 'compIdx', label: '경쟁강도' },
+  { key: 'avgClk', label: '평균 광고클릭수' },
+];
+let visibleColumns = new Set(COLUMN_CONFIG.filter(c => c.fixed || c.default).map(c => c.key));
+let viewOptionsOpen = false;
 let sortCol = 'totalSearch';
 let sortAsc = false;
 
@@ -670,6 +702,7 @@ function renderTable(results) {
   const sorted = sortData(results, sortCol, sortAsc);
   const maxSearch = Math.max(...sorted.map(r => r.totalSearch), 1);
   const catLabel = getCatLabel();
+  const v = visibleColumns;
 
   const rows = sorted.map((r, i) => {
     const rank = i + 1;
@@ -679,19 +712,22 @@ function renderTable(results) {
       ? `<span class="badge badge-health">건강식품</span>`
       : `<span class="badge badge-diet">다이어트식품</span>`;
     const isHigh = r.totalSearch > 10000;
+    const avgClk = (r.monthlyAvePcClkCnt || 0) + (r.monthlyAveMobileClkCnt || 0);
 
     return `<tr>
       <td><span style="color:var(--gray-5);font-weight:600;margin-right:4px;">${rank}</span>${medal(rank)}</td>
       <td><strong>${r.keyword}</strong></td>
-      <td>${catBadge}</td>
-      <td><span class="badge badge-shopping">쇼핑성</span></td>
-      <td>
+      ${v.has('category') ? `<td>${catBadge}</td>` : ''}
+      ${v.has('classification') ? `<td><span class="badge badge-shopping">쇼핑성</span></td>` : ''}
+      ${v.has('totalSearch') ? `<td>
         <div class="bar-cell">
           <div class="bar-bg"><div class="bar-fill" style="width:${barW}%"></div></div>
           <span class="bar-val ${isHigh ? 'high' : ''}">${fmtNum(r.totalSearch)}</span>
         </div>
-      </td>
-      <td style="font-size:12px;color:var(--gray-6);">
+      </td>` : ''}
+      ${v.has('pcSearch') ? `<td style="font-size:12px;color:var(--gray-5);">${fmtNum(r.monthlyPcQcCnt)}</td>` : ''}
+      ${v.has('mobileSearch') ? `<td style="font-size:12px;color:var(--gray-5);">${fmtNum(r.monthlyMobileQcCnt)}</td>` : ''}
+      ${v.has('pcRatio') ? `<td style="font-size:12px;color:var(--gray-6);">
         <div style="display:flex;align-items:center;gap:6px;">
           <div class="ratio-bar">
             <div class="ratio-pc" style="width:${r.pcRatio}%"></div>
@@ -699,12 +735,18 @@ function renderTable(results) {
           </div>
           <span>PC ${r.pcRatio}%</span>
         </div>
-      </td>
-      <td style="font-size:12px;color:var(--gray-5);">${fmtNum(r.monthlyPcQcCnt)}</td>
-      <td style="font-size:12px;color:var(--gray-5);">${fmtNum(r.monthlyMobileQcCnt)}</td>
-      <td>${compBadge(r.compIdx)}</td>
+      </td>` : ''}
+      ${v.has('compIdx') ? `<td>${compBadge(r.compIdx)}</td>` : ''}
+      ${v.has('avgClk') ? `<td style="font-size:12px;color:var(--gray-5);">${fmtNum(avgClk)}</td>` : ''}
     </tr>`;
   }).join('');
+
+  const checkboxesHtml = COLUMN_CONFIG.filter(c => !c.fixed).map(c => `
+    <label class="vo-check">
+      <input type="checkbox" id="vo_${c.key}" ${visibleColumns.has(c.key) ? 'checked' : ''}>
+      ${c.label}
+    </label>
+  `).join('');
 
   document.getElementById('resultArea').innerHTML = `
     <div class="result-header">
@@ -715,11 +757,20 @@ function renderTable(results) {
         <span class="result-sub">월간 검색량 기준</span>
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
-        <div class="legend">
-          <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>PC</div>
-          <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div>모바일</div>
-        </div>
+        <button class="action-btn" onclick="toggleViewOptions()">⊞ 보기옵션</button>
         <button class="action-btn" onclick="downloadCSV()">⬇ CSV 저장</button>
+      </div>
+    </div>
+    <div class="view-options" id="viewOptions" style="display:${viewOptionsOpen ? 'block' : 'none'};">
+      <div class="vo-header">
+        <span class="vo-title">보기 옵션</span>
+        <button class="vo-reset" onclick="resetViewOptions()">초기화</button>
+      </div>
+      <p class="vo-desc">보기 항목이나 표기 방법을 원하는 형태로 선택해보세요.</p>
+      <div class="vo-grid">${checkboxesHtml}</div>
+      <div class="vo-actions">
+        <button class="vo-btn" onclick="cancelViewOptions()">취소</button>
+        <button class="vo-btn primary" onclick="saveViewOptions()">저장</button>
       </div>
     </div>
     <div class="table-wrap">
@@ -727,18 +778,55 @@ function renderTable(results) {
         <thead><tr>
           <th onclick="doSort('rank')" class="${sortCol==='rank'?'sorted':''}">순위${si('rank')}</th>
           <th onclick="doSort('keyword')" class="${sortCol==='keyword'?'sorted':''}">키워드${si('keyword')}</th>
-          <th>카테고리</th>
-          <th>분류</th>
-          <th onclick="doSort('totalSearch')" class="${sortCol==='totalSearch'?'sorted':''}">월간 검색량${si('totalSearch')}</th>
-          <th>PC/모바일 비율</th>
-          <th onclick="doSort('monthlyPcQcCnt')" class="${sortCol==='monthlyPcQcCnt'?'sorted':''}">PC 검색수${si('monthlyPcQcCnt')}</th>
-          <th onclick="doSort('monthlyMobileQcCnt')" class="${sortCol==='monthlyMobileQcCnt'?'sorted':''}">모바일 검색수${si('monthlyMobileQcCnt')}</th>
-          <th onclick="doSort('compIdx')" class="${sortCol==='compIdx'?'sorted':''}">경쟁강도${si('compIdx')}</th>
+          ${v.has('category') ? `<th>대표 카테고리</th>` : ''}
+          ${v.has('classification') ? `<th>분류</th>` : ''}
+          ${v.has('totalSearch') ? `<th onclick="doSort('totalSearch')" class="${sortCol==='totalSearch'?'sorted':''}">검색수${si('totalSearch')}</th>` : ''}
+          ${v.has('pcSearch') ? `<th onclick="doSort('monthlyPcQcCnt')" class="${sortCol==='monthlyPcQcCnt'?'sorted':''}">PC 검색수${si('monthlyPcQcCnt')}</th>` : ''}
+          ${v.has('mobileSearch') ? `<th onclick="doSort('monthlyMobileQcCnt')" class="${sortCol==='monthlyMobileQcCnt'?'sorted':''}">모바일 검색수${si('monthlyMobileQcCnt')}</th>` : ''}
+          ${v.has('pcRatio') ? `<th>PC/모바일 비율</th>` : ''}
+          ${v.has('compIdx') ? `<th onclick="doSort('compIdx')" class="${sortCol==='compIdx'?'sorted':''}">경쟁강도${si('compIdx')}</th>` : ''}
+          ${v.has('avgClk') ? `<th>평균 광고클릭수</th>` : ''}
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>
-    <p class="hint">💡 월간 검색량 = PC + 모바일 합산 | 네이버 검색광고 API 기준 | 최대 500개</p>`;
+    <p class="hint">💡 검색수 = PC + 모바일 합산 | 네이버 검색광고 API 기준 | 최대 500개</p>`;
+}
+
+function toggleViewOptions() {
+  viewOptionsOpen = !viewOptionsOpen;
+  const panel = document.getElementById('viewOptions');
+  if (panel) panel.style.display = viewOptionsOpen ? 'block' : 'none';
+}
+
+function saveViewOptions() {
+  const next = new Set(['rank', 'keyword']);
+  COLUMN_CONFIG.forEach(c => {
+    if (c.fixed) return;
+    const cb = document.getElementById('vo_' + c.key);
+    if (cb && cb.checked) next.add(c.key);
+  });
+  visibleColumns = next;
+  viewOptionsOpen = false;
+  if (lastResults.length) renderTable(lastResults);
+}
+
+function cancelViewOptions() {
+  COLUMN_CONFIG.forEach(c => {
+    if (c.fixed) return;
+    const cb = document.getElementById('vo_' + c.key);
+    if (cb) cb.checked = visibleColumns.has(c.key);
+  });
+  viewOptionsOpen = false;
+  document.getElementById('viewOptions').style.display = 'none';
+}
+
+function resetViewOptions() {
+  COLUMN_CONFIG.forEach(c => {
+    if (c.fixed) return;
+    const cb = document.getElementById('vo_' + c.key);
+    if (cb) cb.checked = !!c.default;
+  });
 }
 
 function downloadCSV() {
