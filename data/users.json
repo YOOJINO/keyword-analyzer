@@ -5,6 +5,12 @@
       "passwordHash": "5d8966b2db4b60231c19161385e755d5:806e181c8b7a27fab4a1ad86603a8034970ff53f2ae5edc7d345ef342fc361198c650ed56d3468689a4351b23d08a3516eeea5656b0b33319f8a545eb0bcb0c6",
       "role": "admin",
       "createdAt": "2026-04-30T16:20:05.422Z"
+    },
+    {
+      "id": "1234",
+      "passwordHash": "7fc65be089ce9b7c2d921cd0036e7c81:6632ce7d94fc492b7a0c2ce7b8a2065e2b473c04ecc7bb152df1a258fa5e911c45791491ac68aaf126d0cae88836b2e10e1a447330620a3fd2e9217e42afea33",
+      "role": "user",
+      "createdAt": "2026-04-30T16:24:10.114Z"
     }
   ]
 }
