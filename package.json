@@ -1,7 +1,8 @@
 {
   "name": "viral-marketing-lab",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "바이럴 마케팅 연구소",
+  "type": "module",
   "engines": { "node": "24.x" },
   "dependencies": {
     "jsonwebtoken": "^9.0.2"
