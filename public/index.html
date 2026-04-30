@@ -310,15 +310,6 @@ td{padding:11px 14px;font-size:13px;color:var(--gray-7);}
         </div>
       </div>
     </div>
-    <div style="display:flex;justify-content:center;padding:14px 20px;border-top:1px solid var(--gray-2);gap:16px;">
-      <div id="progressWrap" style="display:none;">
-        <div class="progress-wrap">
-          <div class="progress-bg"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
-          <span style="font-size:11px;color:var(--gray-5);" id="progressText">0%</span>
-        </div>
-      </div>
-      <button class="search-btn" id="searchBtn" onclick="fetchData()">조회</button>
-    </div>
   </div>
 
   <div class="error-box" id="errorBox"></div>
@@ -564,9 +555,20 @@ function getKwCategory(keyword) {
   return cat2 === 'diet' ? '다이어트식품' : '건강식품';
 }
 
-function setPeriod(btn) {
+function setPeriod(btn, mode) {
   document.querySelectorAll('.pbtn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
+  const dateRange = document.getElementById('dateRange');
+  if (mode === 'past') {
+    dateRange.style.display = 'flex';
+    const ym = new Date().toISOString().slice(0, 7);
+    const f = document.getElementById('dateFrom');
+    const t = document.getElementById('dateTo');
+    if (!f.value) f.value = ym;
+    if (!t.value) t.value = ym;
+  } else {
+    dateRange.style.display = 'none';
+  }
 }
 
 // =============================================
