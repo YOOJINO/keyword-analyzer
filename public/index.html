@@ -78,8 +78,11 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--gray-1);color:var(--
 .card-body{padding:18px 20px;}
 
 /* 경쟁사 분석 — 레이아웃 */
+body.view-competitor .main{max-width:none;padding:14px 14px 14px 0;}
+body.view-competitor #viewCategory,
+body.view-competitor #viewKeyword{display:none !important;}
 .comp-layout{display:flex;gap:14px;align-items:flex-start;}
-.comp-sidebar{width:240px;flex-shrink:0;padding:16px 12px;align-self:flex-start;}
+.comp-sidebar{width:240px;flex-shrink:0;padding:16px 12px;align-self:flex-start;border-top-left-radius:0;border-bottom-left-radius:0;border-left:none;}
 .comp-sidebar-title{font-size:13px;font-weight:700;color:var(--gray-6);margin-bottom:10px;padding:0 6px;letter-spacing:.3px;}
 .comp-main{flex:1;min-width:0;}
 
@@ -94,7 +97,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--gray-1);color:var(--
 .comp-proj-item.active .comp-proj-actions{display:flex;}
 .comp-proj-action{background:none;border:none;color:inherit;cursor:pointer;font-size:11px;padding:2px 5px;border-radius:3px;font-family:inherit;line-height:1;opacity:.75;}
 .comp-proj-action:hover{opacity:1;background:rgba(0,0,0,.08);}
-.comp-proj-name-input{flex:1;border:1.5px solid var(--blue);border-radius:4px;padding:3px 6px;font-size:13px;font-weight:500;font-family:inherit;outline:none;color:var(--gray-7);}
+.comp-proj-name-input{flex:1;width:100%;border:1.5px solid var(--blue);border-radius:4px;padding:3px 6px;font-size:13px;font-weight:500;font-family:inherit;outline:none;color:var(--gray-7);min-width:0;}
+.comp-proj-item.renaming .comp-proj-year,
+.comp-proj-item.renaming .comp-proj-actions{display:none;}
 
 .comp-add-project-btn{width:100%;margin-top:10px;padding:9px;border:1.5px dashed var(--gray-3);border-radius:6px;background:transparent;font-size:12px;font-weight:500;color:var(--gray-5);cursor:pointer;font-family:inherit;transition:all .15s;}
 .comp-add-project-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-light);}
@@ -794,6 +799,7 @@ function switchView(name, navEl) {
   });
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   navEl.classList.add('active');
+  document.body.classList.toggle('view-competitor', name === 'Competitor');
   if (name === 'Competitor') {
     document.getElementById('resultArea').innerHTML = '';
     loadCompetitorData();
@@ -858,7 +864,7 @@ function renderProjectList() {
   }).join('');
 
   const proj = activeProject();
-  document.getElementById('compActiveTitle').textContent = proj ? `${proj.name} · ${proj.year}` : '';
+  document.getElementById('compActiveTitle').textContent = proj ? proj.name : '';
 }
 
 function switchProject(projectId) {
@@ -928,6 +934,8 @@ function startRenameProject(projectId) {
   if (!proj) return;
   const span = document.getElementById(`ptn-${projectId}`);
   if (!span) return;
+  const item = span.closest('.comp-proj-item');
+  if (item) item.classList.add('renaming');
   const input = document.createElement('input');
   input.type = 'text';
   input.className = 'comp-proj-name-input';
