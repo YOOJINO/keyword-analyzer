@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>키워드 분석기</title>
+<title>바이럴 마케팅 연구소</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -155,13 +155,13 @@ td{padding:11px 14px;font-size:13px;color:var(--gray-7);}
 
 <div class="header">
   <div class="logo">
-    <div class="logo-box">K</div>
-    키워드분석기
+    <div class="logo-box">V</div>
+    바이럴 마케팅 연구소
   </div>
   <div class="nav">
-    <div class="nav-item active">아이템발굴</div>
-    <div class="nav-item">키워드분석</div>
-    <div class="nav-item">랭킹추적</div>
+    <div class="nav-item active">카테고리 조회</div>
+    <div class="nav-item">키워드 조회</div>
+    <div class="nav-item">경쟁사 분석</div>
   </div>
 </div>
 
@@ -752,7 +752,7 @@ function downloadCSV() {
   const csv = '\uFEFF' + [header, ...rows].map(r => r.join(',')).join('\n');
   const a = document.createElement('a');
   a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
-  a.download = `키워드분석_${getCatLabel()}.csv`;
+  a.download = `바이럴마케팅연구소_${getCatLabel()}.csv`;
   a.click();
 }
 
