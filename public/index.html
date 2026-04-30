@@ -51,23 +51,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--gray-1);color:var(--
 .pbtn:hover{border-color:var(--blue);color:var(--blue);}
 .pbtn.active{background:var(--blue);border-color:var(--blue);color:#fff;}
 
-/* 월 선택기 */
-.month-picker{position:relative;display:inline-block;}
-.mp-input{border:1.5px solid var(--gray-3);border-radius:6px;padding:6px 30px 6px 10px;font-size:12px;font-family:inherit;color:var(--gray-7);background:var(--white);width:110px;cursor:pointer;}
-.mp-input:focus{outline:none;border-color:var(--blue);}
-.mp-icon{position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--gray-5);font-size:13px;cursor:pointer;}
-.mp-popup{position:absolute;top:calc(100% + 8px);left:0;background:#fff;border:1px solid var(--gray-3);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,0.12);padding:14px;z-index:1000;width:260px;}
-.mp-popup::before{content:'';position:absolute;top:-7px;left:24px;width:12px;height:12px;background:#fff;border-left:1px solid var(--gray-3);border-top:1px solid var(--gray-3);transform:rotate(45deg);}
-.mp-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
-.mp-year{font-size:14px;font-weight:600;color:var(--gray-7);}
-.mp-nav{background:none;border:none;cursor:pointer;padding:4px 10px;font-size:16px;color:var(--gray-5);font-family:inherit;border-radius:4px;}
-.mp-nav:hover:not(:disabled){color:var(--blue);background:var(--gray-2);}
-.mp-nav:disabled{color:var(--gray-3);cursor:not-allowed;}
-.mp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;}
-.mp-month{padding:10px 0;border:none;background:none;font-size:13px;font-weight:500;color:var(--gray-7);cursor:pointer;border-radius:6px;font-family:inherit;}
-.mp-month:hover:not(:disabled){background:var(--blue-light);color:var(--blue);}
-.mp-month.active{background:var(--blue);color:#fff;}
-.mp-month:disabled{color:var(--gray-4);cursor:not-allowed;}
 
 .radio-group{display:flex;gap:14px;}
 .rlabel{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--gray-6);cursor:pointer;}
@@ -227,12 +210,7 @@ td{padding:11px 14px;font-size:13px;color:var(--gray-7);}
       <span class="filter-label">기간</span>
       <div class="filter-section-content">
         <div class="period-btns">
-          <button class="pbtn active" onclick="setPeriod(this, 'recent')">최근 30일</button>
-          <button class="pbtn" onclick="setPeriod(this, 'past')">과거 선택</button>
-        </div>
-        <div class="month-picker" id="monthPickerWrap" style="display:none;margin-left:8px;" onclick="event.stopPropagation();">
-          <input type="text" class="mp-input" id="dateFrom" readonly placeholder="YYYY-MM" onclick="toggleMonthPicker(this)">
-          <span class="mp-icon" onclick="toggleMonthPicker(this.previousElementSibling)">📅</span>
+          <button class="pbtn active" type="button">최근 30일</button>
         </div>
         <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
           <div id="progressWrap" style="display:none;">
@@ -465,8 +443,6 @@ const CAT_DATA = {
 
 let currentSeeds = [];
 let lastResults = [];
-let lastPeriodLabel = '최근 30일';
-let _periodMode = 'recent';
 let sortCol = 'totalSearch';
 let sortAsc = false;
 
@@ -567,115 +543,13 @@ function getKwCategory(keyword) {
   return cat2 === 'diet' ? '다이어트식품' : '건강식품';
 }
 
-function setPeriod(btn, mode) {
-  document.querySelectorAll('.pbtn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  _periodMode = mode;
-  const wrap = document.getElementById('monthPickerWrap');
-  if (mode === 'past') {
-    wrap.style.display = 'inline-block';
-    const f = document.getElementById('dateFrom');
-    if (!f.value) f.value = new Date().toISOString().slice(0, 7);
-  } else {
-    wrap.style.display = 'none';
-  }
-}
-
-// =============================================
-// 월 선택기 (커스텀 드롭다운)
-// =============================================
-const _mpViewYear = {};
-
-function _mpParseValue(input) {
-  if (input.value && /^\d{4}-\d{2}$/.test(input.value)) {
-    const [y, m] = input.value.split('-').map(Number);
-    return { y, m };
-  }
-  const now = new Date();
-  return { y: now.getFullYear(), m: now.getMonth() + 1 };
-}
-
-function _mpClosePopup(input) {
-  const wrap = input.parentNode;
-  const popup = wrap.querySelector('.mp-popup');
-  if (popup) popup.remove();
-}
-
-function _mpCloseAll() {
-  document.querySelectorAll('.mp-popup').forEach(p => p.remove());
-}
-
-function _mpRender(input) {
-  const wrap = input.parentNode;
-  const popup = wrap.querySelector('.mp-popup');
-  if (!popup) return;
-  const sel = _mpParseValue(input);
-  const today = new Date();
-  const curY = today.getFullYear();
-  const curM = today.getMonth() + 1;
-  const viewYear = _mpViewYear[input.id];
-  popup.innerHTML = `
-    <div class="mp-header">
-      <button type="button" class="mp-nav" onclick="mpNavYear('${input.id}',-1);event.stopPropagation();">‹</button>
-      <span class="mp-year">${viewYear}</span>
-      <button type="button" class="mp-nav" onclick="mpNavYear('${input.id}',1);event.stopPropagation();" ${viewYear >= curY ? 'disabled' : ''}>›</button>
-    </div>
-    <div class="mp-grid">
-      ${Array.from({length: 12}, (_, i) => {
-        const m = i + 1;
-        const active = (viewYear === sel.y && m === sel.m);
-        const future = (viewYear > curY) || (viewYear === curY && m > curM);
-        return `<button type="button" class="mp-month${active ? ' active' : ''}" onclick="mpSelectMonth('${input.id}',${m});event.stopPropagation();" ${future ? 'disabled' : ''}>${m}월</button>`;
-      }).join('')}
-    </div>
-  `;
-}
-
-function toggleMonthPicker(input) {
-  const wrap = input.parentNode;
-  const existing = wrap.querySelector('.mp-popup');
-  if (existing) {
-    existing.remove();
-    return;
-  }
-  _mpCloseAll();
-  _mpViewYear[input.id] = _mpParseValue(input).y;
-  const popup = document.createElement('div');
-  popup.className = 'mp-popup';
-  popup.onclick = (e) => e.stopPropagation();
-  wrap.appendChild(popup);
-  _mpRender(input);
-}
-
-function mpNavYear(inputId, delta) {
-  _mpViewYear[inputId] += delta;
-  _mpRender(document.getElementById(inputId));
-}
-
-function mpSelectMonth(inputId, month) {
-  const input = document.getElementById(inputId);
-  const y = _mpViewYear[inputId];
-  input.value = `${y}-${String(month).padStart(2, '0')}`;
-  _mpClosePopup(input);
-}
-
-document.addEventListener('click', _mpCloseAll);
-
 // =============================================
 // API 호출
 // =============================================
-function getCurrentPeriodLabel() {
-  if (_periodMode !== 'past') return '최근 30일';
-  const f = document.getElementById('dateFrom').value;
-  if (f) return f;
-  return '과거 선택';
-}
-
 async function fetchData() {
   const seeds = getSeeds();
   if (!seeds.length) return showError('카테고리를 선택해주세요.');
 
-  lastPeriodLabel = getCurrentPeriodLabel();
   hideError();
   const btn = document.getElementById('searchBtn');
   btn.disabled = true; btn.textContent = '조회 중...';
@@ -837,7 +711,7 @@ function renderTable(results) {
       <div class="result-title">
         ${catLabel}
         <span class="count-badge">${results.length}개</span>
-        <span class="result-period">${lastPeriodLabel}</span>
+        <span class="result-period">최근 30일</span>
         <span class="result-sub">월간 검색량 기준</span>
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
