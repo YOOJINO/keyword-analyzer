@@ -64,7 +64,7 @@
             "color": "green"
           },
           "above": {
-            "value": null,
+            "value": 10000,
             "color": "red"
           }
         }
