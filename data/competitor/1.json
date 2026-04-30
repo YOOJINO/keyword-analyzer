@@ -59,7 +59,7 @@
             "color": "yellow"
           },
           "between": {
-            "from": null,
+            "from": 1001,
             "to": null,
             "color": "green"
           },
