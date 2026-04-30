@@ -45,7 +45,7 @@
           },
           "between": {
             "from": 1001,
-            "to": null,
+            "to": 9999,
             "color": ""
           },
           "above": {
