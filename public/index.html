@@ -151,6 +151,8 @@ body.view-competitor #viewKeyword{display:none !important;}
 .comp-grid tbody td:first-child{background:var(--gray-1);font-weight:600;color:var(--gray-7);width:110px;}
 .comp-grid tbody td{color:var(--gray-7);}
 .comp-grid tbody td.empty{color:var(--gray-4);}
+.comp-cell-month{font-weight:600;color:var(--gray-7);font-size:13px;}
+.comp-cell-cumul{font-size:10px;color:var(--gray-5);margin-top:2px;font-weight:500;}
 .comp-grid tbody tr.future td{color:var(--gray-3);background:var(--gray-1);}
 .comp-kw-cell{display:flex;align-items:center;justify-content:center;gap:6px;}
 .comp-kw-name{font-weight:600;color:var(--gray-7);cursor:pointer;user-select:text;padding:2px 6px;border-radius:4px;transition:background .2s;}
@@ -1249,11 +1251,26 @@ function renderCompetitorGrid() {
     </th>`;
   }).join('');
 
-  const rows = months.map(m => {
+  const rows = months.map((m, mIdx) => {
     const cells = keywords.map(kw => {
       const v = data[m.key]?.[kw];
-      if (v === null || v === undefined) return `<td class="empty">-</td>`;
-      return `<td>${Number(v).toLocaleString()}</td>`;
+      // 1월부터 해당 월까지 누적 합 계산
+      let cumulative = 0;
+      let hasAny = false;
+      for (let i = 0; i <= mIdx; i++) {
+        const val = data[months[i].key]?.[kw];
+        if (typeof val === 'number') { cumulative += val; hasAny = true; }
+      }
+      if (v === null || v === undefined) {
+        if (hasAny) {
+          return `<td class="empty"><div>-</div><div class="comp-cell-cumul">누적 ${cumulative.toLocaleString()}</div></td>`;
+        }
+        return `<td class="empty">-</td>`;
+      }
+      return `<td>
+        <div class="comp-cell-month">${Number(v).toLocaleString()}</div>
+        <div class="comp-cell-cumul">누적 ${cumulative.toLocaleString()}</div>
+      </td>`;
     }).join('');
     return `<tr class="${m.future ? 'future' : ''}"><td>${m.label}</td>${cells}</tr>`;
   }).join('');
