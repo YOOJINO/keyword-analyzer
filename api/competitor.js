@@ -1,5 +1,5 @@
 import { requireAuth } from './_lib/auth.js';
-import { loadCompetitor, saveCompetitor } from './_lib/competitor.js';
+import { loadState, saveState } from './_lib/competitor.js';
 
 function hasCompetitorPermission(user) {
   if (user.role === 'admin') return true;
@@ -13,38 +13,43 @@ export default async function handler(req, res) {
     return res.status(403).json({ error: '경쟁사 분석 권한이 없습니다.' });
   }
 
-  const year = Number(req.query.year) || new Date().getFullYear();
-
   try {
     if (req.method === 'GET') {
-      const data = await loadCompetitor(user.id, year);
-      return res.status(200).json(data);
+      const state = await loadState(user.id);
+      return res.status(200).json(state);
     }
 
     if (req.method === 'PUT') {
       const body = req.body || {};
-      if (!Array.isArray(body.keywords)) {
-        return res.status(400).json({ error: 'keywords 배열이 필요합니다.' });
+      if (!Array.isArray(body.projects)) {
+        return res.status(400).json({ error: 'projects 배열이 필요합니다.' });
       }
-      // 키워드 중복 제거 + 빈 값 제거
-      const keywords = [...new Set(body.keywords.map(k => String(k).trim()).filter(Boolean))];
-      const existing = await loadCompetitor(user.id, year);
-      const payload = {
-        year,
-        keywords,
-        data: body.data && typeof body.data === 'object' ? body.data : existing.data,
-      };
-      // 월별 데이터에서 사라진 키워드 정리
-      for (const month of Object.keys(payload.data)) {
-        const monthData = payload.data[month] || {};
-        const cleaned = {};
-        for (const kw of keywords) {
-          if (kw in monthData) cleaned[kw] = monthData[kw];
+      // 각 프로젝트의 keywords / data 정리
+      const cleaned = body.projects.map(p => {
+        const keywords = [...new Set((p.keywords || []).map(k => String(k).trim()).filter(Boolean))];
+        const data = (p.data && typeof p.data === 'object') ? p.data : {};
+        for (const month of Object.keys(data)) {
+          const monthData = data[month] || {};
+          const cleanedMonth = {};
+          for (const kw of keywords) {
+            if (kw in monthData) cleanedMonth[kw] = monthData[kw];
+          }
+          data[month] = cleanedMonth;
         }
-        payload.data[month] = cleaned;
-      }
-      await saveCompetitor(user.id, payload);
-      return res.status(200).json(payload);
+        return {
+          id: p.id,
+          name: String(p.name || '제목 없음').slice(0, 80),
+          year: Number(p.year) || new Date().getFullYear(),
+          keywords,
+          data,
+        };
+      });
+      const activeProjectId = body.activeProjectId && cleaned.find(p => p.id === body.activeProjectId)
+        ? body.activeProjectId
+        : (cleaned[0]?.id || null);
+      const state = { projects: cleaned, activeProjectId };
+      await saveState(user.id, state);
+      return res.status(200).json(state);
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
