@@ -33,8 +33,11 @@ export async function writeFile(path, content, message) {
   const { owner, name } = getRepoInfo();
   const existing = await readFile(path);
   const url = `${GH_API}/repos/${owner}/${name}/contents/${path}`;
+  const baseMsg = message || `Update ${path}`;
+  // 데이터 파일 저장은 Vercel 재배포 트리거하지 않도록 [skip ci] 태그 추가
+  const finalMsg = baseMsg.includes('[skip ci]') ? baseMsg : `${baseMsg} [skip ci]`;
   const body = {
-    message: message || `Update ${path}`,
+    message: finalMsg,
     content: Buffer.from(content, 'utf-8').toString('base64'),
   };
   if (existing) body.sha = existing.sha;
