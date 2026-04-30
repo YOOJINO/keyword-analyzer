@@ -196,7 +196,6 @@ body.view-competitor #viewKeyword{display:none !important;}
 .comp-add-btn:hover{background:var(--blue-mid);}
 .comp-grid{border-collapse:collapse;table-layout:auto;}
 .comp-grid th,.comp-grid td{border:1px solid var(--gray-2);padding:10px 14px;font-size:13px;text-align:center;white-space:nowrap;}
-.comp-grid tbody td:not(:first-child){font-size:15px;font-weight:700;}
 .comp-grid thead th{background:var(--gray-2);font-weight:600;color:var(--gray-6);position:sticky;top:0;}
 .comp-grid thead th:first-child{background:var(--gray-3);color:var(--gray-7);width:100px;min-width:100px;max-width:100px;}
 .comp-grid tbody td:first-child{background:var(--gray-1);font-weight:600;color:var(--gray-7);width:100px;min-width:100px;max-width:100px;}
@@ -2031,7 +2030,7 @@ async function refreshUserList() {
         : (perms.length
             ? perms.map(p => `<span class="user-row-perm">${PERM_LABEL[p] || p}</span>`).join('')
             : '<span style="font-size:11px;color:var(--gray-4);">권한 없음</span>');
-      const pwDisplay = u.password ? u.password : '<span style="color:var(--gray-4);">(비번변경 후 표시)</span>';
+      const pwDisplay = u.password ? u.password : '<span style="color:var(--gray-4);">(로그인 1회 후 표시)</span>';
       const isMe = u.id === currentUser.id;
       return `
       <div class="user-row-wrap" id="urw-${i}">
