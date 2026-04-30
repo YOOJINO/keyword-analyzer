@@ -34,6 +34,7 @@ export async function createUser({ id, password, role, permissions }) {
   const finalRole = role === 'admin' ? 'admin' : 'user';
   const user = {
     id,
+    password,
     passwordHash: hashPassword(password),
     role: finalRole,
     permissions: normalizePerms(finalRole, permissions),
@@ -48,7 +49,10 @@ export async function updateUser(id, { password, role, permissions }) {
   const data = await loadUsers();
   const user = data.users.find(u => u.id === id);
   if (!user) throw new Error('사용자를 찾을 수 없습니다.');
-  if (password) user.passwordHash = hashPassword(password);
+  if (password) {
+    user.password = password;
+    user.passwordHash = hashPassword(password);
+  }
   if (role && (role === 'admin' || role === 'user')) user.role = role;
   if (permissions !== undefined || role) {
     user.permissions = normalizePerms(user.role, permissions !== undefined ? permissions : user.permissions);
