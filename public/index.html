@@ -56,9 +56,25 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--gray-1);color:var(--
 
 /* 날짜 입력 */
 .date-range{display:flex;align-items:center;gap:6px;margin-left:8px;}
-.date-input{border:1.5px solid var(--gray-3);border-radius:6px;padding:6px 10px;font-size:12px;font-family:inherit;color:var(--gray-7);background:var(--white);}
-.date-input:focus{outline:none;border-color:var(--blue);}
 .date-sep{color:var(--gray-4);font-size:13px;}
+
+/* 월 선택기 */
+.month-picker{position:relative;display:inline-block;}
+.mp-input{border:1.5px solid var(--gray-3);border-radius:6px;padding:6px 30px 6px 10px;font-size:12px;font-family:inherit;color:var(--gray-7);background:var(--white);width:110px;cursor:pointer;}
+.mp-input:focus{outline:none;border-color:var(--blue);}
+.mp-icon{position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--gray-5);font-size:13px;pointer-events:none;}
+.mp-popup{position:absolute;top:calc(100% + 8px);left:0;background:#fff;border:1px solid var(--gray-3);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,0.12);padding:14px;z-index:1000;width:260px;}
+.mp-popup::before{content:'';position:absolute;top:-7px;left:24px;width:12px;height:12px;background:#fff;border-left:1px solid var(--gray-3);border-top:1px solid var(--gray-3);transform:rotate(45deg);}
+.mp-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.mp-year{font-size:14px;font-weight:600;color:var(--gray-7);}
+.mp-nav{background:none;border:none;cursor:pointer;padding:4px 10px;font-size:16px;color:var(--gray-5);font-family:inherit;border-radius:4px;}
+.mp-nav:hover:not(:disabled){color:var(--blue);background:var(--gray-2);}
+.mp-nav:disabled{color:var(--gray-3);cursor:not-allowed;}
+.mp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;}
+.mp-month{padding:10px 0;border:none;background:none;font-size:13px;font-weight:500;color:var(--gray-7);cursor:pointer;border-radius:6px;font-family:inherit;}
+.mp-month:hover:not(:disabled){background:var(--blue-light);color:var(--blue);}
+.mp-month.active{background:var(--blue);color:#fff;}
+.mp-month:disabled{color:var(--gray-4);cursor:not-allowed;}
 .radio-group{display:flex;gap:14px;}
 .rlabel{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--gray-6);cursor:pointer;}
 .rlabel input{accent-color:var(--blue);}
@@ -220,9 +236,15 @@ td{padding:11px 14px;font-size:13px;color:var(--gray-7);}
           <button class="pbtn" onclick="setPeriod(this, 'past')">과거 선택</button>
         </div>
         <div class="date-range" id="dateRange" style="display:none;">
-          <input type="month" class="date-input" id="dateFrom">
+          <div class="month-picker">
+            <input type="text" class="mp-input" id="dateFrom" readonly placeholder="YYYY-MM">
+            <span class="mp-icon">📅</span>
+          </div>
           <span class="date-sep">-</span>
-          <input type="month" class="date-input" id="dateTo">
+          <div class="month-picker">
+            <input type="text" class="mp-input" id="dateTo" readonly placeholder="YYYY-MM">
+            <span class="mp-icon">📅</span>
+          </div>
         </div>
         <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
           <div id="progressWrap" style="display:none;">
@@ -572,6 +594,91 @@ function setPeriod(btn, mode) {
 }
 
 // =============================================
+// 월 선택기 (커스텀 드롭다운)
+// =============================================
+function initMonthPicker(inputId) {
+  const input = document.getElementById(inputId);
+  const wrap = input.parentNode;
+  let popup = null;
+  let viewYear = new Date().getFullYear();
+
+  function parseValue() {
+    if (input.value && /^\d{4}-\d{2}$/.test(input.value)) {
+      const [y, m] = input.value.split('-').map(Number);
+      return { y, m };
+    }
+    const now = new Date();
+    return { y: now.getFullYear(), m: now.getMonth() + 1 };
+  }
+
+  function render() {
+    const sel = parseValue();
+    const today = new Date();
+    const curY = today.getFullYear();
+    const curM = today.getMonth() + 1;
+    popup.innerHTML = `
+      <div class="mp-header">
+        <button type="button" class="mp-nav" data-act="prev">‹</button>
+        <span class="mp-year">${viewYear}</span>
+        <button type="button" class="mp-nav" data-act="next" ${viewYear >= curY ? 'disabled' : ''}>›</button>
+      </div>
+      <div class="mp-grid">
+        ${Array.from({length: 12}, (_, i) => {
+          const m = i + 1;
+          const active = (viewYear === sel.y && m === sel.m);
+          const future = (viewYear > curY) || (viewYear === curY && m > curM);
+          return `<button type="button" class="mp-month${active ? ' active' : ''}" data-month="${m}" ${future ? 'disabled' : ''}>${m}월</button>`;
+        }).join('')}
+      </div>
+    `;
+    popup.querySelectorAll('.mp-nav').forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        if (btn.disabled) return;
+        if (btn.dataset.act === 'prev') viewYear--;
+        else viewYear++;
+        render();
+      };
+    });
+    popup.querySelectorAll('.mp-month').forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        if (btn.disabled) return;
+        const m = String(btn.dataset.month).padStart(2, '0');
+        input.value = `${viewYear}-${m}`;
+        close();
+      };
+    });
+  }
+
+  function open() {
+    if (popup) return;
+    viewYear = parseValue().y;
+    popup = document.createElement('div');
+    popup.className = 'mp-popup';
+    wrap.appendChild(popup);
+    render();
+    setTimeout(() => document.addEventListener('click', onOutside), 0);
+  }
+
+  function close() {
+    if (!popup) return;
+    popup.remove();
+    popup = null;
+    document.removeEventListener('click', onOutside);
+  }
+
+  function onOutside(e) {
+    if (!wrap.contains(e.target)) close();
+  }
+
+  input.addEventListener('click', (e) => {
+    e.stopPropagation();
+    popup ? close() : open();
+  });
+}
+
+// =============================================
 // API 호출
 // =============================================
 async function fetchData() {
@@ -783,6 +890,8 @@ function downloadCSV() {
 
 // 초기화
 onCat2Change();
+initMonthPicker('dateFrom');
+initMonthPicker('dateTo');
 </script>
 </body>
 </html>
