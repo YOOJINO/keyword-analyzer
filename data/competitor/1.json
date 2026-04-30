@@ -2,7 +2,7 @@
   "projects": [
     {
       "id": "p_1777567765891_1r113b",
-      "name": "다이어트",
+      "name": "영양제",
       "year": 2026,
       "keywords": [
         "오메가3",
@@ -36,7 +36,8 @@
         "2026-11": {},
         "2026-12": {}
       },
-      "lastQueryDate": "2026-04-30T18:32:57.972Z"
+      "lastQueryDate": "2026-04-30T18:32:57.972Z",
+      "thresholds": null
     }
   ],
   "activeProjectId": "p_1777567765891_1r113b"
