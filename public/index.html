@@ -639,9 +639,10 @@ async function fetchKeywordData() {
     });
     const data = await resp.json();
     if (data.error) throw new Error(data.error);
-    let results = data.keywords || [];
-    results.sort((a, b) => b.totalSearch - a.totalSearch);
-    lastResults = results.slice(0, 500);
+    const norm = s => (s || '').replace(/\s+/g, '').toLowerCase();
+    const target = norm(keyword);
+    const exact = (data.keywords || []).filter(k => norm(k.keyword) === target);
+    lastResults = exact;
     renderTable(lastResults);
   } catch(e) {
     showError(e.message);
