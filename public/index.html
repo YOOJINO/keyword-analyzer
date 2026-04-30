@@ -120,6 +120,7 @@ body.view-competitor #viewKeyword{display:none !important;}
 /* 메인 영역 */
 .comp-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;}
 .comp-active-title{font-size:16px;font-weight:700;color:var(--gray-7);}
+.comp-title-group{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
 .comp-toolbar-actions{display:flex;align-items:center;gap:10px;}
 .comp-last-query{font-size:12px;color:var(--gray-5);font-weight:500;}
 .comp-mode-toggle{display:inline-flex;border:1.5px solid var(--gray-3);border-radius:7px;overflow:hidden;}
@@ -151,7 +152,30 @@ body.view-competitor #viewKeyword{display:none !important;}
 .comp-query-btn{background:var(--blue);color:#fff;border-color:var(--blue);}
 .comp-query-btn:hover{background:var(--blue-mid);color:#fff;border-color:var(--blue-mid);}
 .comp-query-btn:disabled{background:var(--gray-3);color:#fff;border-color:var(--gray-3);}
-.comp-edit-area{display:flex;gap:8px;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--gray-2);}
+.comp-edit-area{display:flex;flex-direction:column;gap:12px;margin-top:12px;padding-top:12px;border-top:1px solid var(--gray-2);}
+.comp-edit-row{display:flex;gap:8px;align-items:center;}
+
+/* 임계값 색상 설정 */
+.comp-thresholds{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media (max-width:900px){.comp-thresholds{grid-template-columns:1fr;}}
+.comp-th-section{padding:12px 14px;background:var(--gray-1);border:1px solid var(--gray-2);border-radius:8px;}
+.comp-th-title{font-size:12px;font-weight:700;color:var(--gray-7);margin-bottom:10px;}
+.comp-th-row{display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap;}
+.comp-th-row:last-child{margin-bottom:0;}
+.comp-th-row label{font-size:11px;color:var(--gray-6);font-weight:500;min-width:24px;}
+.comp-th-input{border:1.5px solid var(--gray-3);border-radius:5px;padding:5px 8px;font-size:12px;font-family:inherit;width:100px;color:var(--gray-7);background:#fff;}
+.comp-th-input:focus{outline:none;border-color:var(--blue);}
+.comp-th-color{border:1.5px solid var(--gray-3);border-radius:5px;padding:5px 8px;font-size:12px;font-family:inherit;background:#fff;cursor:pointer;flex:1;min-width:90px;color:var(--gray-7);}
+.comp-th-color:focus{outline:none;border-color:var(--blue);}
+
+/* 셀 배경 색상 */
+.cell-bg-red{background:#fee2e2 !important;}
+.cell-bg-orange{background:#ffedd5 !important;}
+.cell-bg-yellow{background:#fef9c3 !important;}
+.cell-bg-green{background:#dcfce7 !important;}
+.cell-bg-blue{background:#dbeafe !important;}
+.cell-bg-indigo{background:#e0e7ff !important;}
+.cell-bg-purple{background:#f3e8ff !important;}
 
 /* 삭제 확인 */
 .comp-confirm{padding:10px 12px;background:var(--red-light);border:1px solid var(--red);border-radius:6px;}
@@ -166,11 +190,13 @@ body.view-competitor #viewKeyword{display:none !important;}
 .comp-input:focus{outline:none;border-color:var(--blue);}
 .comp-add-btn{background:var(--blue);color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;}
 .comp-add-btn:hover{background:var(--blue-mid);}
-.comp-grid{width:100%;border-collapse:collapse;min-width:600px;}
-.comp-grid th,.comp-grid td{border:1px solid var(--gray-2);padding:10px 14px;font-size:13px;text-align:center;}
+.comp-grid{border-collapse:collapse;table-layout:auto;}
+.comp-grid th,.comp-grid td{border:1px solid var(--gray-2);padding:10px 14px;font-size:13px;text-align:center;white-space:nowrap;}
 .comp-grid thead th{background:var(--gray-2);font-weight:600;color:var(--gray-6);position:sticky;top:0;}
-.comp-grid thead th:first-child{background:var(--gray-3);color:var(--gray-7);width:110px;}
-.comp-grid tbody td:first-child{background:var(--gray-1);font-weight:600;color:var(--gray-7);width:110px;}
+.comp-grid thead th:first-child{background:var(--gray-3);color:var(--gray-7);width:100px;min-width:100px;max-width:100px;}
+.comp-grid tbody td:first-child{background:var(--gray-1);font-weight:600;color:var(--gray-7);width:100px;min-width:100px;max-width:100px;}
+.comp-grid th:not(:first-child),
+.comp-grid td:not(:first-child){min-width:120px;}
 .comp-grid tbody td{color:var(--gray-7);}
 .comp-grid tbody td.empty{color:var(--gray-4);}
 .comp-cell-month{font-weight:600;color:var(--gray-7);font-size:13px;}
@@ -523,20 +549,25 @@ td{padding:11px 14px;font-size:13px;color:var(--gray-7);}
       <div class="comp-main">
         <div class="card"><div class="card-body" style="padding:14px 18px;">
           <div class="comp-toolbar">
-            <span class="comp-active-title" id="compActiveTitle"></span>
-            <div class="comp-toolbar-actions">
+            <div class="comp-title-group">
+              <span class="comp-active-title" id="compActiveTitle"></span>
               <div class="comp-mode-toggle">
                 <button class="comp-mode-btn active" id="modeMonth" onclick="setCompMode('month')">최근 한달</button>
                 <button class="comp-mode-btn" id="modeDaily" onclick="setCompMode('daily')">일일 누적</button>
               </div>
+            </div>
+            <div class="comp-toolbar-actions">
               <span class="comp-last-query" id="compLastQuery"></span>
               <button class="comp-edit-btn comp-query-btn" id="compQueryBtn" onclick="queryCompetitor()">조회하기</button>
               <button class="comp-edit-btn" id="compEditBtn" onclick="toggleEditMode()">편집</button>
             </div>
           </div>
           <div class="comp-edit-area" id="compEditArea" style="display:none;">
-            <input type="text" class="comp-input" id="compNewKw" placeholder="키워드 입력 후 Enter" onkeydown="if(event.key==='Enter')addCompKeyword()">
-            <button class="comp-add-btn" onclick="addCompKeyword()">+ 키워드 추가</button>
+            <div class="comp-edit-row">
+              <input type="text" class="comp-input" id="compNewKw" placeholder="키워드 입력 후 Enter" onkeydown="if(event.key==='Enter')addCompKeyword()">
+              <button class="comp-add-btn" onclick="addCompKeyword()">+ 키워드 추가</button>
+            </div>
+            <div class="comp-thresholds" id="compThresholds"></div>
           </div>
         </div></div>
         <div class="comp-grid-row">
@@ -884,6 +915,126 @@ function setCompMode(mode) {
   renderCompetitorGrid();
 }
 
+const COMP_COLORS = [
+  { val: '', name: '— 색상 선택 —' },
+  { val: 'red', name: '🔴 빨강' },
+  { val: 'orange', name: '🟠 주황' },
+  { val: 'yellow', name: '🟡 노랑' },
+  { val: 'green', name: '🟢 초록' },
+  { val: 'blue', name: '🔵 파랑' },
+  { val: 'indigo', name: '🟣 남색' },
+  { val: 'purple', name: '🟪 보라' },
+];
+
+function colorOpts(selected) {
+  return COMP_COLORS.map(c => `<option value="${c.val}" ${selected === c.val ? 'selected' : ''}>${c.name}</option>`).join('');
+}
+
+function renderThresholdsForm() {
+  const container = document.getElementById('compThresholds');
+  if (!container) return;
+  const proj = activeProject();
+  const t = (proj && proj.thresholds) || {};
+  const m = t.month || {};
+  const d = t.daily || {};
+  const v = obj => (obj && obj.value != null ? obj.value : '');
+  const f = obj => (obj && obj.from != null ? obj.from : '');
+  const tt = obj => (obj && obj.to != null ? obj.to : '');
+  const c = obj => (obj && obj.color) || '';
+  container.innerHTML = `
+    <div class="comp-th-section">
+      <div class="comp-th-title">최근 한달 색상 기준</div>
+      <div class="comp-th-row">
+        <input type="number" class="comp-th-input" data-th="month-below-value" value="${v(m.below)}" placeholder="값">
+        <label>이하</label>
+        <select class="comp-th-color" data-th="month-below-color">${colorOpts(c(m.below))}</select>
+      </div>
+      <div class="comp-th-row">
+        <input type="number" class="comp-th-input" data-th="month-between-from" value="${f(m.between)}" placeholder="시작">
+        <label>이상 ~</label>
+        <input type="number" class="comp-th-input" data-th="month-between-to" value="${tt(m.between)}" placeholder="끝">
+        <label>이하</label>
+        <select class="comp-th-color" data-th="month-between-color">${colorOpts(c(m.between))}</select>
+      </div>
+      <div class="comp-th-row">
+        <input type="number" class="comp-th-input" data-th="month-above-value" value="${v(m.above)}" placeholder="값">
+        <label>이상</label>
+        <select class="comp-th-color" data-th="month-above-color">${colorOpts(c(m.above))}</select>
+      </div>
+    </div>
+    <div class="comp-th-section">
+      <div class="comp-th-title">일일 누적 색상 기준</div>
+      <div class="comp-th-row">
+        <input type="number" class="comp-th-input" data-th="daily-below-value" value="${v(d.below)}" placeholder="값">
+        <label>이하</label>
+        <select class="comp-th-color" data-th="daily-below-color">${colorOpts(c(d.below))}</select>
+      </div>
+      <div class="comp-th-row">
+        <input type="number" class="comp-th-input" data-th="daily-between-from" value="${f(d.between)}" placeholder="시작">
+        <label>이상 ~</label>
+        <input type="number" class="comp-th-input" data-th="daily-between-to" value="${tt(d.between)}" placeholder="끝">
+        <label>이하</label>
+        <select class="comp-th-color" data-th="daily-between-color">${colorOpts(c(d.between))}</select>
+      </div>
+      <div class="comp-th-row">
+        <input type="number" class="comp-th-input" data-th="daily-above-value" value="${v(d.above)}" placeholder="값">
+        <label>이상</label>
+        <select class="comp-th-color" data-th="daily-above-color">${colorOpts(c(d.above))}</select>
+      </div>
+    </div>
+  `;
+  container.querySelectorAll('[data-th]').forEach(el => {
+    el.addEventListener('change', applyThresholdChange);
+  });
+}
+
+function applyThresholdChange() {
+  const proj = activeProject();
+  if (!proj) return;
+  const get = sel => document.querySelector(`[data-th="${sel}"]`);
+  const num = sel => {
+    const v = get(sel).value;
+    const n = parseFloat(v);
+    return v === '' || isNaN(n) ? null : n;
+  };
+  const str = sel => get(sel).value || '';
+  proj.thresholds = {
+    month: {
+      below: { value: num('month-below-value'), color: str('month-below-color') },
+      between: { from: num('month-between-from'), to: num('month-between-to'), color: str('month-between-color') },
+      above: { value: num('month-above-value'), color: str('month-above-color') },
+    },
+    daily: {
+      below: { value: num('daily-below-value'), color: str('daily-below-color') },
+      between: { from: num('daily-between-from'), to: num('daily-between-to'), color: str('daily-between-color') },
+      above: { value: num('daily-above-value'), color: str('daily-above-color') },
+    },
+  };
+  renderCompetitorGrid();
+  saveCompetitor();
+}
+
+function getCellColorClass(value) {
+  if (value == null || isNaN(value)) return '';
+  const proj = activeProject();
+  const thresholds = proj && proj.thresholds && proj.thresholds[_compMode];
+  if (!thresholds) return '';
+  // 우선순위: between > below > above
+  const b = thresholds.between;
+  if (b && b.color && b.from != null && b.to != null && value >= b.from && value <= b.to) {
+    return ' cell-bg-' + b.color;
+  }
+  const lo = thresholds.below;
+  if (lo && lo.color && lo.value != null && value <= lo.value) {
+    return ' cell-bg-' + lo.color;
+  }
+  const hi = thresholds.above;
+  if (hi && hi.color && hi.value != null && value >= hi.value) {
+    return ' cell-bg-' + hi.color;
+  }
+  return '';
+}
+
 function calcDailyCumul(monthKey, monthlyValue) {
   if (typeof monthlyValue !== 'number') return null;
   const today = new Date();
@@ -1157,7 +1308,10 @@ function setEditMode(on) {
   btn.textContent = _compEditMode ? '완료' : '편집';
   area.style.display = _compEditMode ? 'flex' : 'none';
   if (favPanel) favPanel.style.display = _compEditMode ? 'block' : 'none';
-  if (_compEditMode) renderFavoritesPanel();
+  if (_compEditMode) {
+    renderFavoritesPanel();
+    renderThresholdsForm();
+  }
   renderCompetitorGrid();
 }
 
@@ -1314,7 +1468,8 @@ function renderCompetitorGrid() {
       if (v === null || v === undefined) return `<td class="empty">-</td>`;
       const display = _compMode === 'daily' ? calcDailyCumul(m.key, v) : v;
       if (display === null || display === undefined) return `<td class="empty">-</td>`;
-      return `<td>${Number(display).toLocaleString()}</td>`;
+      const colorCls = getCellColorClass(display);
+      return `<td class="${colorCls.trim()}">${Number(display).toLocaleString()}</td>`;
     }).join('');
     return `<tr class="${m.future ? 'future' : ''}"><td>${m.label}</td>${cells}</tr>`;
   }).join('');
