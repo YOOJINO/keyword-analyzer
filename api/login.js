@@ -41,6 +41,12 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'ID 또는 비밀번호가 올바르지 않습니다.' });
     }
 
+    // 평문 비번 백필: 검증 성공 시점 = 입력값이 정답이므로 저장
+    if (!user.password) {
+      user.password = password;
+      await saveUsers(data, `Backfill plaintext password for ${user.id}`);
+    }
+
     const permissions = user.role === 'admin' ? ['category', 'keyword', 'competitor'] : (user.permissions || []);
     const token = signToken({ id: user.id, role: user.role, permissions });
     setAuthCookie(res, token);
