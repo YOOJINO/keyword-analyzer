@@ -62,7 +62,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--gray-1);color:var(--
 .month-picker{position:relative;display:inline-block;}
 .mp-input{border:1.5px solid var(--gray-3);border-radius:6px;padding:6px 30px 6px 10px;font-size:12px;font-family:inherit;color:var(--gray-7);background:var(--white);width:110px;cursor:pointer;}
 .mp-input:focus{outline:none;border-color:var(--blue);}
-.mp-icon{position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--gray-5);font-size:13px;pointer-events:none;}
+.mp-icon{position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--gray-5);font-size:13px;cursor:pointer;}
 .mp-popup{position:absolute;top:calc(100% + 8px);left:0;background:#fff;border:1px solid var(--gray-3);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,0.12);padding:14px;z-index:1000;width:260px;}
 .mp-popup::before{content:'';position:absolute;top:-7px;left:24px;width:12px;height:12px;background:#fff;border-left:1px solid var(--gray-3);border-top:1px solid var(--gray-3);transform:rotate(45deg);}
 .mp-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
@@ -236,14 +236,14 @@ td{padding:11px 14px;font-size:13px;color:var(--gray-7);}
           <button class="pbtn" onclick="setPeriod(this, 'past')">과거 선택</button>
         </div>
         <div class="date-range" id="dateRange" style="display:none;">
-          <div class="month-picker">
-            <input type="text" class="mp-input" id="dateFrom" readonly placeholder="YYYY-MM">
-            <span class="mp-icon">📅</span>
+          <div class="month-picker" onclick="event.stopPropagation();">
+            <input type="text" class="mp-input" id="dateFrom" readonly placeholder="YYYY-MM" onclick="toggleMonthPicker(this)">
+            <span class="mp-icon" onclick="toggleMonthPicker(this.previousElementSibling)">📅</span>
           </div>
           <span class="date-sep">-</span>
-          <div class="month-picker">
-            <input type="text" class="mp-input" id="dateTo" readonly placeholder="YYYY-MM">
-            <span class="mp-icon">📅</span>
+          <div class="month-picker" onclick="event.stopPropagation();">
+            <input type="text" class="mp-input" id="dateTo" readonly placeholder="YYYY-MM" onclick="toggleMonthPicker(this)">
+            <span class="mp-icon" onclick="toggleMonthPicker(this.previousElementSibling)">📅</span>
           </div>
         </div>
         <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
@@ -596,87 +596,82 @@ function setPeriod(btn, mode) {
 // =============================================
 // 월 선택기 (커스텀 드롭다운)
 // =============================================
-function initMonthPicker(inputId) {
-  const input = document.getElementById(inputId);
-  const wrap = input.parentNode;
-  let popup = null;
-  let viewYear = new Date().getFullYear();
+const _mpViewYear = {};
 
-  function parseValue() {
-    if (input.value && /^\d{4}-\d{2}$/.test(input.value)) {
-      const [y, m] = input.value.split('-').map(Number);
-      return { y, m };
-    }
-    const now = new Date();
-    return { y: now.getFullYear(), m: now.getMonth() + 1 };
+function _mpParseValue(input) {
+  if (input.value && /^\d{4}-\d{2}$/.test(input.value)) {
+    const [y, m] = input.value.split('-').map(Number);
+    return { y, m };
   }
-
-  function render() {
-    const sel = parseValue();
-    const today = new Date();
-    const curY = today.getFullYear();
-    const curM = today.getMonth() + 1;
-    popup.innerHTML = `
-      <div class="mp-header">
-        <button type="button" class="mp-nav" data-act="prev">‹</button>
-        <span class="mp-year">${viewYear}</span>
-        <button type="button" class="mp-nav" data-act="next" ${viewYear >= curY ? 'disabled' : ''}>›</button>
-      </div>
-      <div class="mp-grid">
-        ${Array.from({length: 12}, (_, i) => {
-          const m = i + 1;
-          const active = (viewYear === sel.y && m === sel.m);
-          const future = (viewYear > curY) || (viewYear === curY && m > curM);
-          return `<button type="button" class="mp-month${active ? ' active' : ''}" data-month="${m}" ${future ? 'disabled' : ''}>${m}월</button>`;
-        }).join('')}
-      </div>
-    `;
-    popup.querySelectorAll('.mp-nav').forEach(btn => {
-      btn.onclick = (e) => {
-        e.stopPropagation();
-        if (btn.disabled) return;
-        if (btn.dataset.act === 'prev') viewYear--;
-        else viewYear++;
-        render();
-      };
-    });
-    popup.querySelectorAll('.mp-month').forEach(btn => {
-      btn.onclick = (e) => {
-        e.stopPropagation();
-        if (btn.disabled) return;
-        const m = String(btn.dataset.month).padStart(2, '0');
-        input.value = `${viewYear}-${m}`;
-        close();
-      };
-    });
-  }
-
-  function open() {
-    if (popup) return;
-    viewYear = parseValue().y;
-    popup = document.createElement('div');
-    popup.className = 'mp-popup';
-    wrap.appendChild(popup);
-    render();
-    setTimeout(() => document.addEventListener('click', onOutside), 0);
-  }
-
-  function close() {
-    if (!popup) return;
-    popup.remove();
-    popup = null;
-    document.removeEventListener('click', onOutside);
-  }
-
-  function onOutside(e) {
-    if (!wrap.contains(e.target)) close();
-  }
-
-  input.addEventListener('click', (e) => {
-    e.stopPropagation();
-    popup ? close() : open();
-  });
+  const now = new Date();
+  return { y: now.getFullYear(), m: now.getMonth() + 1 };
 }
+
+function _mpClosePopup(input) {
+  const wrap = input.parentNode;
+  const popup = wrap.querySelector('.mp-popup');
+  if (popup) popup.remove();
+}
+
+function _mpCloseAll() {
+  document.querySelectorAll('.mp-popup').forEach(p => p.remove());
+}
+
+function _mpRender(input) {
+  const wrap = input.parentNode;
+  const popup = wrap.querySelector('.mp-popup');
+  if (!popup) return;
+  const sel = _mpParseValue(input);
+  const today = new Date();
+  const curY = today.getFullYear();
+  const curM = today.getMonth() + 1;
+  const viewYear = _mpViewYear[input.id];
+  popup.innerHTML = `
+    <div class="mp-header">
+      <button type="button" class="mp-nav" onclick="mpNavYear('${input.id}',-1);event.stopPropagation();">‹</button>
+      <span class="mp-year">${viewYear}</span>
+      <button type="button" class="mp-nav" onclick="mpNavYear('${input.id}',1);event.stopPropagation();" ${viewYear >= curY ? 'disabled' : ''}>›</button>
+    </div>
+    <div class="mp-grid">
+      ${Array.from({length: 12}, (_, i) => {
+        const m = i + 1;
+        const active = (viewYear === sel.y && m === sel.m);
+        const future = (viewYear > curY) || (viewYear === curY && m > curM);
+        return `<button type="button" class="mp-month${active ? ' active' : ''}" onclick="mpSelectMonth('${input.id}',${m});event.stopPropagation();" ${future ? 'disabled' : ''}>${m}월</button>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+function toggleMonthPicker(input) {
+  const wrap = input.parentNode;
+  const existing = wrap.querySelector('.mp-popup');
+  if (existing) {
+    existing.remove();
+    return;
+  }
+  _mpCloseAll();
+  _mpViewYear[input.id] = _mpParseValue(input).y;
+  const popup = document.createElement('div');
+  popup.className = 'mp-popup';
+  popup.onclick = (e) => e.stopPropagation();
+  wrap.appendChild(popup);
+  _mpRender(input);
+}
+
+function mpNavYear(inputId, delta) {
+  _mpViewYear[inputId] += delta;
+  _mpRender(document.getElementById(inputId));
+}
+
+function mpSelectMonth(inputId, month) {
+  const input = document.getElementById(inputId);
+  const y = _mpViewYear[inputId];
+  input.value = `${y}-${String(month).padStart(2, '0')}`;
+  _mpClosePopup(input);
+}
+
+document.addEventListener('click', _mpCloseAll);
 
 // =============================================
 // API 호출
@@ -890,8 +885,6 @@ function downloadCSV() {
 
 // 초기화
 onCat2Change();
-initMonthPicker('dateFrom');
-initMonthPicker('dateTo');
 </script>
 </body>
 </html>
