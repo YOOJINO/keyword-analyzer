@@ -28,6 +28,34 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--gray-1);color:var(--
 .nav-item{padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:var(--gray-5);transition:all .15s;}
 .nav-item.active{background:var(--blue-light);color:var(--blue);}
 
+/* 사용자 메뉴 */
+.user-menu{display:flex;}
+.user-id{font-size:12px;font-weight:500;color:var(--gray-6);}
+.user-btn{padding:6px 12px;border:1.5px solid var(--gray-3);border-radius:6px;background:var(--white);font-size:12px;font-weight:500;cursor:pointer;color:var(--gray-6);font-family:inherit;transition:all .15s;}
+.user-btn:hover{border-color:var(--blue);color:var(--blue);}
+
+/* 모달 */
+.modal-bg{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px;}
+.modal-bg.open{display:flex;}
+.modal{background:#fff;border-radius:12px;width:100%;max-width:560px;max-height:80vh;overflow:auto;box-shadow:0 12px 40px rgba(0,0,0,.2);}
+.modal-header{padding:18px 22px;border-bottom:1px solid var(--gray-2);display:flex;justify-content:space-between;align-items:center;}
+.modal-title{font-size:16px;font-weight:700;color:var(--gray-7);}
+.modal-close{background:none;border:none;font-size:20px;color:var(--gray-5);cursor:pointer;font-family:inherit;}
+.modal-body{padding:18px 22px;}
+.user-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
+.user-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--gray-1);border-radius:8px;}
+.user-row-id{font-weight:600;color:var(--gray-7);font-size:14px;}
+.user-row-role{font-size:11px;color:var(--gray-5);background:var(--white);padding:2px 8px;border-radius:10px;border:1px solid var(--gray-3);margin-left:6px;}
+.user-row-actions{display:flex;gap:6px;}
+.um-btn{padding:5px 10px;border:1.5px solid var(--gray-3);border-radius:5px;background:#fff;font-size:11px;font-weight:500;cursor:pointer;color:var(--gray-6);font-family:inherit;}
+.um-btn:hover{border-color:var(--blue);color:var(--blue);}
+.um-btn.danger:hover{border-color:var(--red);color:var(--red);}
+.um-add-form{display:grid;grid-template-columns:1fr 1fr 110px 80px;gap:8px;align-items:center;padding-top:12px;border-top:1px solid var(--gray-2);}
+.um-input{border:1.5px solid var(--gray-3);border-radius:6px;padding:8px 10px;font-size:13px;font-family:inherit;}
+.um-input:focus{outline:none;border-color:var(--blue);}
+.um-add-btn{background:var(--blue);color:#fff;border:none;border-radius:6px;padding:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
+.um-add-btn:hover{background:var(--blue-mid);}
+
 .main{max-width:1280px;margin:0 auto;padding:24px 20px;}
 
 /* 카드 */
@@ -186,6 +214,11 @@ td{padding:11px 14px;font-size:13px;color:var(--gray-7);}
     <div class="nav-item active" onclick="switchView('Category', this)">카테고리 조회</div>
     <div class="nav-item" onclick="switchView('Keyword', this)">키워드 조회</div>
     <div class="nav-item" onclick="switchView('Competitor', this)">경쟁사 분석</div>
+  </div>
+  <div class="user-menu" id="userMenu" style="display:none;margin-left:auto;align-items:center;gap:10px;">
+    <span class="user-id" id="userIdLabel"></span>
+    <button class="user-btn" id="adminBtn" onclick="openUserManager()" style="display:none;">사용자 관리</button>
+    <button class="user-btn" onclick="doLogout()">로그아웃</button>
   </div>
 </div>
 
@@ -353,6 +386,28 @@ td{padding:11px 14px;font-size:13px;color:var(--gray-7);}
     </div>
   </div>
 
+</div>
+
+<!-- 사용자 관리 모달 -->
+<div class="modal-bg" id="userModal" onclick="if(event.target===this)closeUserManager()">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">사용자 관리</span>
+      <button class="modal-close" onclick="closeUserManager()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="user-list" id="userList"></div>
+      <form class="um-add-form" onsubmit="addUser(event)">
+        <input type="text" class="um-input" id="newUserId" placeholder="새 ID" required>
+        <input type="password" class="um-input" id="newUserPw" placeholder="비밀번호 (4자+)" required>
+        <select class="um-input" id="newUserRole">
+          <option value="user">일반 사용자</option>
+          <option value="admin">관리자</option>
+        </select>
+        <button type="submit" class="um-add-btn">추가</button>
+      </form>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -902,8 +957,134 @@ function resetViewOptions() {
 }
 
 
-// 초기화
-onCat2Change();
+// =============================================
+// 인증 / 사용자 관리
+// =============================================
+let currentUser = null;
+
+async function checkAuth() {
+  try {
+    const resp = await fetch('/api/me');
+    if (!resp.ok) {
+      location.href = '/login.html';
+      return false;
+    }
+    const data = await resp.json();
+    currentUser = data.user;
+    document.getElementById('userMenu').style.display = 'flex';
+    document.getElementById('userIdLabel').textContent = currentUser.id;
+    if (currentUser.role === 'admin') {
+      document.getElementById('adminBtn').style.display = 'inline-block';
+    }
+    return true;
+  } catch {
+    location.href = '/login.html';
+    return false;
+  }
+}
+
+async function doLogout() {
+  if (!confirm('로그아웃 하시겠습니까?')) return;
+  try {
+    await fetch('/api/logout', { method: 'POST' });
+  } catch {}
+  location.href = '/login.html';
+}
+
+async function openUserManager() {
+  document.getElementById('userModal').classList.add('open');
+  await refreshUserList();
+}
+
+function closeUserManager() {
+  document.getElementById('userModal').classList.remove('open');
+}
+
+async function refreshUserList() {
+  const list = document.getElementById('userList');
+  list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--gray-5);font-size:13px;">로딩 중...</div>';
+  try {
+    const resp = await fetch('/api/users');
+    if (!resp.ok) throw new Error((await resp.json()).error || '사용자 목록 로드 실패');
+    const data = await resp.json();
+    if (!data.users.length) {
+      list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--gray-5);font-size:13px;">등록된 사용자가 없습니다.</div>';
+      return;
+    }
+    list.innerHTML = data.users.map(u => `
+      <div class="user-row">
+        <div>
+          <span class="user-row-id">${u.id}</span>
+          <span class="user-row-role">${u.role === 'admin' ? '관리자' : '일반'}</span>
+        </div>
+        <div class="user-row-actions">
+          <button class="um-btn" onclick="changePassword('${u.id}')">비번변경</button>
+          ${u.id !== currentUser.id ? `<button class="um-btn danger" onclick="removeUser('${u.id}')">삭제</button>` : ''}
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {
+    list.innerHTML = `<div style="color:var(--red);padding:12px;font-size:13px;">${e.message}</div>`;
+  }
+}
+
+async function addUser(e) {
+  e.preventDefault();
+  const id = document.getElementById('newUserId').value.trim();
+  const password = document.getElementById('newUserPw').value;
+  const role = document.getElementById('newUserRole').value;
+  try {
+    const resp = await fetch('/api/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, password, role }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || '추가 실패');
+    document.getElementById('newUserId').value = '';
+    document.getElementById('newUserPw').value = '';
+    await refreshUserList();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+async function removeUser(id) {
+  if (!confirm(`사용자 "${id}" 를 삭제하시겠습니까?`)) return;
+  try {
+    const resp = await fetch('/api/users', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || '삭제 실패');
+    await refreshUserList();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+async function changePassword(id) {
+  const password = prompt(`"${id}" 의 새 비밀번호 (4자 이상):`);
+  if (!password) return;
+  if (password.length < 4) return alert('비밀번호는 4자 이상이어야 합니다.');
+  try {
+    const resp = await fetch('/api/users', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, password }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || '변경 실패');
+    alert('비밀번호가 변경되었습니다.');
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+// 초기화 — 인증 통과 시에만 카테고리 init
+checkAuth().then(ok => { if (ok) onCat2Change(); });
 </script>
 </body>
 </html>
