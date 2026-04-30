@@ -8,9 +8,14 @@
     },
     {
       "id": "1234",
-      "passwordHash": "7fc65be089ce9b7c2d921cd0036e7c81:6632ce7d94fc492b7a0c2ce7b8a2065e2b473c04ecc7bb152df1a258fa5e911c45791491ac68aaf126d0cae88836b2e10e1a447330620a3fd2e9217e42afea33",
+      "passwordHash": "69e495aa0358128e8f0c64c0df970fd7:85893845b0ca52e440ba90d593dcdf5adea3502c7e6dbe2f3d2b9b4f54076278da0072e04eb541885b9bfea537d5dea0097afabeaf8a3066ee369b0e4f90c39e",
       "role": "user",
-      "createdAt": "2026-04-30T16:24:10.114Z"
+      "createdAt": "2026-04-30T16:24:10.114Z",
+      "permissions": [
+        "category",
+        "keyword",
+        "competitor"
+      ]
     }
   ]
 }
