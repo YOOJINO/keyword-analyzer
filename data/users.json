@@ -16,6 +16,17 @@
         "keyword",
         "competitor"
       ]
+    },
+    {
+      "id": "이혜림",
+      "passwordHash": "97962380e212a85674aa5852ca36455d:070c1f07938f7de80060a9854e0cd49e24fd9c78780280ee7c404c3ba86532209531111deee3a2863241769c941a88fe5698e3b98998c0dd9b5840cd432470a2",
+      "role": "user",
+      "permissions": [
+        "category",
+        "keyword",
+        "competitor"
+      ],
+      "createdAt": "2026-04-30T18:49:35.901Z"
     }
   ]
 }
