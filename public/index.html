@@ -34,6 +34,11 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--gray-1);color:var(--
 .card{background:var(--white);border:1px solid var(--gray-3);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:14px;}
 .card-body{padding:18px 20px;}
 
+/* 키워드 검색 입력 */
+.kw-search-row{display:flex;gap:10px;align-items:center;}
+.kw-input{flex:1;border:1.5px solid var(--gray-3);border-radius:8px;padding:11px 14px;font-size:14px;font-family:inherit;color:var(--gray-7);background:var(--white);}
+.kw-input:focus{outline:none;border-color:var(--blue);}
+
 /* 카테고리 바 */
 .cat-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 .cat-wrap{position:relative;}
@@ -178,13 +183,16 @@ td{padding:11px 14px;font-size:13px;color:var(--gray-7);}
     바이럴 마케팅 연구소
   </div>
   <div class="nav">
-    <div class="nav-item active">카테고리 조회</div>
-    <div class="nav-item">키워드 조회</div>
-    <div class="nav-item">경쟁사 분석</div>
+    <div class="nav-item active" onclick="switchView('Category', this)">카테고리 조회</div>
+    <div class="nav-item" onclick="switchView('Keyword', this)">키워드 조회</div>
+    <div class="nav-item" onclick="switchView('Competitor', this)">경쟁사 분석</div>
   </div>
 </div>
 
 <div class="main">
+
+  <!-- 카테고리 조회 뷰 -->
+  <div id="viewCategory">
 
   <!-- 카테고리 -->
   <div class="card"><div class="card-body">
@@ -314,6 +322,25 @@ td{padding:11px 14px;font-size:13px;color:var(--gray-7);}
         </div>
       </div>
     </div>
+  </div>
+
+  </div><!-- /viewCategory -->
+
+  <!-- 키워드 조회 뷰 -->
+  <div id="viewKeyword" style="display:none;">
+    <div class="card"><div class="card-body">
+      <div class="kw-search-row">
+        <input type="text" id="keywordInput" class="kw-input" placeholder="키워드를 입력하세요" onkeydown="if(event.key==='Enter')fetchKeywordData()">
+        <button class="search-btn" id="kwSearchBtn" onclick="fetchKeywordData()">조회</button>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- 경쟁사 분석 뷰 -->
+  <div id="viewCompetitor" style="display:none;">
+    <div class="card"><div class="card-body" style="text-align:center;padding:60px 20px;color:var(--gray-5);">
+      경쟁사 분석 기능은 준비 중입니다.
+    </div></div>
   </div>
 
   <div class="error-box" id="errorBox"></div>
@@ -576,8 +603,54 @@ function getKwCategory(keyword) {
 }
 
 // =============================================
+// 뷰 전환
+// =============================================
+function switchView(name, navEl) {
+  ['Category', 'Keyword', 'Competitor'].forEach(n => {
+    document.getElementById('view' + n).style.display = (n === name) ? 'block' : 'none';
+  });
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  navEl.classList.add('active');
+  document.getElementById('resultArea').innerHTML = `
+    <div class="empty-wrap">
+      <div class="empty-icon">📊</div>
+      <div class="empty-text">${name === 'Keyword' ? '키워드를 입력하고 조회 버튼을 눌러주세요' : '카테고리를 선택하고 조회 버튼을 눌러주세요'}</div>
+    </div>`;
+  hideError();
+}
+
+// =============================================
 // API 호출
 // =============================================
+async function fetchKeywordData() {
+  const keyword = document.getElementById('keywordInput').value.trim();
+  if (!keyword) return showError('키워드를 입력해주세요.');
+
+  hideError();
+  const btn = document.getElementById('kwSearchBtn');
+  btn.disabled = true; btn.textContent = '조회 중...';
+  showLoading();
+
+  try {
+    const resp = await fetch('/api/keywords', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hintKeywords: [keyword] })
+    });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error);
+    let results = data.keywords || [];
+    results.sort((a, b) => b.totalSearch - a.totalSearch);
+    lastResults = results.slice(0, 500);
+    renderTable(lastResults);
+  } catch(e) {
+    showError(e.message);
+    document.getElementById('resultArea').innerHTML = '';
+  }
+
+  btn.disabled = false; btn.textContent = '조회';
+}
+
 async function fetchData() {
   const seeds = getSeeds();
   if (!seeds.length) return showError('카테고리를 선택해주세요.');
