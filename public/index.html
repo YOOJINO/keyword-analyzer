@@ -153,7 +153,14 @@ body.view-competitor #viewKeyword{display:none !important;}
 .comp-grid tbody td.empty{color:var(--gray-4);}
 .comp-grid tbody tr.future td{color:var(--gray-3);background:var(--gray-1);}
 .comp-kw-cell{display:flex;align-items:center;justify-content:center;gap:6px;}
-.comp-kw-name{font-weight:600;color:var(--gray-7);}
+.comp-kw-name{font-weight:600;color:var(--gray-7);cursor:pointer;user-select:text;padding:2px 6px;border-radius:4px;transition:background .2s;}
+.comp-kw-name:hover{background:var(--gray-2);}
+.comp-kw-name.copied{background:var(--green-light);color:var(--green);}
+.comp-kw-edit-input{border:1.5px solid var(--blue);border-radius:4px;padding:4px 8px;font-size:13px;font-weight:600;font-family:inherit;outline:none;text-align:center;color:var(--gray-7);min-width:100px;width:100%;background:#fff;}
+.comp-grid th.draggable-kw{cursor:move;}
+.comp-grid th.dragging{opacity:.4;}
+.comp-grid th.drop-target{background:var(--blue-light);box-shadow:inset 3px 0 0 var(--blue);}
+.comp-grid td,.comp-grid th{user-select:text;}
 .comp-kw-del{background:none;border:none;color:var(--gray-4);cursor:pointer;font-size:14px;padding:0 4px;font-family:inherit;border-radius:50%;line-height:1;}
 .comp-kw-del:hover{color:var(--red);background:var(--red-light);}
 .comp-empty{text-align:center;padding:60px 20px;color:var(--gray-5);font-size:13px;}
@@ -881,6 +888,137 @@ function renderProjectList() {
     : '최근 조회: -';
 }
 
+function onKwDblClick(e, el, kw) {
+  e.stopPropagation();
+  if (_compEditMode) {
+    startKeywordEdit(el, kw);
+  } else {
+    copyKeywordToClipboard(el, kw);
+  }
+}
+
+function startKeywordEdit(el, oldKw) {
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'comp-kw-edit-input';
+  input.value = oldKw;
+  input.maxLength = 60;
+  let saved = false;
+  const cleanup = () => { saved = true; renderCompetitorGrid(); };
+  const save = () => {
+    if (saved) return;
+    saved = true;
+    const newKw = input.value.trim();
+    commitKeywordRename(oldKw, newKw);
+  };
+  input.addEventListener('click', e => e.stopPropagation());
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); save(); }
+    else if (e.key === 'Escape') { cleanup(); }
+  });
+  input.addEventListener('blur', save);
+  el.replaceWith(input);
+  input.focus();
+  input.select();
+}
+
+async function commitKeywordRename(oldKw, newKw) {
+  const proj = activeProject();
+  if (!proj) return renderCompetitorGrid();
+  if (!newKw || newKw === oldKw) return renderCompetitorGrid();
+  if (proj.keywords.includes(newKw)) {
+    alert('이미 존재하는 키워드입니다.');
+    return renderCompetitorGrid();
+  }
+  const idx = proj.keywords.indexOf(oldKw);
+  if (idx < 0) return renderCompetitorGrid();
+  proj.keywords[idx] = newKw;
+  // 키워드 이름이 바뀌면 = 다른 키워드 = 기존 데이터 무효 → 모든 월에서 해당 컬럼 데이터 삭제
+  for (const monthKey of Object.keys(proj.data)) {
+    if (proj.data[monthKey] && oldKw in proj.data[monthKey]) {
+      delete proj.data[monthKey][oldKw];
+    }
+  }
+  renderCompetitorGrid();
+  await saveCompetitor();
+}
+
+// =============================================
+// 키워드 컬럼 드래그 정렬 (편집 모드)
+// =============================================
+let _dragKw = null;
+
+function onKwDragStart(e, kw) {
+  if (!_compEditMode) return;
+  _dragKw = kw;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', kw);
+  e.currentTarget.classList.add('dragging');
+}
+
+function onKwDragEnd() {
+  document.querySelectorAll('.comp-grid th').forEach(th => {
+    th.classList.remove('dragging');
+    th.classList.remove('drop-target');
+  });
+  _dragKw = null;
+}
+
+function onKwDragOver(e, kw) {
+  if (!_compEditMode || !_dragKw || _dragKw === kw) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  e.currentTarget.classList.add('drop-target');
+}
+
+function onKwDragLeave(e) {
+  e.currentTarget.classList.remove('drop-target');
+}
+
+async function onKwDrop(e, targetKw) {
+  if (!_compEditMode || !_dragKw) return;
+  e.preventDefault();
+  const proj = activeProject();
+  if (!proj || _dragKw === targetKw) { onKwDragEnd(); return; }
+  const fromIdx = proj.keywords.indexOf(_dragKw);
+  const toIdx = proj.keywords.indexOf(targetKw);
+  if (fromIdx < 0 || toIdx < 0) { onKwDragEnd(); return; }
+  const [moved] = proj.keywords.splice(fromIdx, 1);
+  proj.keywords.splice(toIdx, 0, moved);
+  onKwDragEnd();
+  renderCompetitorGrid();
+  await saveCompetitor();
+}
+
+function copyKeywordToClipboard(el, kw) {
+  const text = String(kw).replace(/\\(['\\])/g, '$1');
+  const onSuccess = () => {
+    el.classList.add('copied');
+    const orig = el.textContent;
+    el.textContent = '복사됨';
+    setTimeout(() => {
+      el.classList.remove('copied');
+      el.textContent = orig;
+    }, 800);
+  };
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(onSuccess).catch(() => fallbackCopy(text, onSuccess));
+  } else {
+    fallbackCopy(text, onSuccess);
+  }
+}
+
+function fallbackCopy(text, onSuccess) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); onSuccess(); } catch {}
+  document.body.removeChild(ta);
+}
+
 function formatCompDate(iso) {
   if (!iso) return '-';
   const d = new Date(iso);
@@ -1097,14 +1235,19 @@ function renderCompetitorGrid() {
     return;
   }
 
-  const headerCols = keywords.map(kw => `
-    <th>
+  const headerCols = keywords.map(kw => {
+    const dragAttrs = _compEditMode
+      ? `class="draggable-kw" draggable="true" ondragstart="onKwDragStart(event,'${escapeAttr(kw)}')" ondragend="onKwDragEnd()" ondragover="onKwDragOver(event,'${escapeAttr(kw)}')" ondragleave="onKwDragLeave(event)" ondrop="onKwDrop(event,'${escapeAttr(kw)}')"`
+      : '';
+    const tip = _compEditMode ? '더블클릭하여 수정 / 드래그로 순서 변경' : '더블클릭하여 복사';
+    return `
+    <th ${dragAttrs}>
       <div class="comp-kw-cell">
-        <span class="comp-kw-name">${escapeHtml(kw)}</span>
+        <span class="comp-kw-name" ondblclick="onKwDblClick(event, this, '${escapeAttr(kw)}')" title="${tip}">${escapeHtml(kw)}</span>
         ${_compEditMode ? `<button class="comp-kw-del" onclick="removeCompKeyword('${escapeAttr(kw)}')" title="삭제">×</button>` : ''}
       </div>
-    </th>
-  `).join('');
+    </th>`;
+  }).join('');
 
   const rows = months.map(m => {
     const cells = keywords.map(kw => {
