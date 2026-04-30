@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>키워드 분석기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --blue:#1a6dff;--blue-light:#e8f0ff;--blue-mid:#4d8eff;
+  --green:#00b96b;--green-light:#e6f9f1;
+  --red:#ff4d4f;--red-light:#fff1f0;
+  --orange:#fa8c16;--orange-light:#fff7e6;
+  --gray-1:#f8f9fc;--gray-2:#f0f2f7;--gray-3:#e2e6ef;
+  --gray-4:#bcc4d4;--gray-5:#8a96ab;--gray-6:#5a6478;--gray-7:#2d3547;
+  --white:#fff;--radius:10px;
+  --shadow:0 1px 4px rgba(0,0,0,.07);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--gray-1);color:var(--gray-7);font-size:14px;}
+
+/* 헤더 */
+.header{background:var(--white);border-bottom:1px solid var(--gray-3);height:54px;display:flex;align-items:center;padding:0 24px;gap:32px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow);}
+.logo{font-size:16px;font-weight:700;color:var(--blue);display:flex;align-items:center;gap:8px;}
+.logo-box{width:28px;height:28px;background:var(--blue);border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;}
+.nav{display:flex;gap:2px;}
+.nav-item{padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:var(--gray-5);transition:all .15s;}
+.nav-item.active{background:var(--blue-light);color:var(--blue);}
+
+.main{max-width:1280px;margin:0 auto;padding:24px 20px;}
+
+/* 카드 */
+.card{background:var(--white);border:1px solid var(--gray-3);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:14px;}
+.card-body{padding:18px 20px;}
+
+/* 카테고리 바 */
+.cat-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.cat-wrap{position:relative;}
+.cat-select{appearance:none;border:1.5px solid var(--gray-3);border-radius:8px;padding:8px 32px 8px 12px;font-size:13px;font-family:inherit;font-weight:500;color:var(--gray-7);background:var(--white);cursor:pointer;min-width:130px;transition:border .15s;}
+.cat-select:focus{outline:none;border-color:var(--blue);}
+.cat-arrow{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--gray-4);font-size:10px;pointer-events:none;}
+.cat-sep{color:var(--gray-3);font-size:18px;}
+
+/* 탭 */
+.tab-bar{display:flex;background:var(--white);border:1px solid var(--gray-3);border-radius:var(--radius);overflow:hidden;margin-bottom:14px;box-shadow:var(--shadow);}
+.tab{flex:1;padding:13px;text-align:center;cursor:pointer;font-size:13px;font-weight:500;color:var(--gray-5);border-bottom:2px solid transparent;transition:all .15s;}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue);background:var(--blue-light);}
+
+/* 필터 */
+.filter-row{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:14px;}
+.filter-row:last-child{margin-bottom:0;}
+.filter-label{font-size:13px;font-weight:600;color:var(--gray-6);min-width:72px;}
+.period-btns{display:flex;gap:6px;}
+.pbtn{padding:6px 14px;border:1.5px solid var(--gray-3);border-radius:6px;background:var(--white);font-size:12px;font-weight:500;cursor:pointer;color:var(--gray-6);font-family:inherit;transition:all .15s;}
+.pbtn:hover{border-color:var(--blue);color:var(--blue);}
+.pbtn.active{background:var(--blue);border-color:var(--blue);color:#fff;}
+.radio-group{display:flex;gap:14px;}
+.rlabel{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--gray-6);cursor:pointer;}
+.rlabel input{accent-color:var(--blue);}
+
+/* 조회 버튼 */
+.search-btn{background:var(--blue);color:#fff;border:none;border-radius:8px;padding:10px 28px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap;}
+.search-btn:hover{background:var(--blue-mid);transform:translateY(-1px);box-shadow:0 4px 12px rgba(26,109,255,.3);}
+.search-btn:disabled{background:var(--gray-4);cursor:not-allowed;transform:none;box-shadow:none;}
+
+/* 검색수 필터 */
+.range-wrap{display:flex;align-items:center;gap:8px;}
+.range-input{border:1.5px solid var(--gray-3);border-radius:6px;padding:6px 10px;font-size:12px;font-family:inherit;width:90px;text-align:center;}
+.range-input:focus{outline:none;border-color:var(--blue);}
+
+/* 에러 */
+.error-box{background:var(--red-light);border:1.5px solid var(--red);border-radius:var(--radius);padding:14px 18px;margin-bottom:14px;font-size:13px;color:var(--red);display:none;}
+
+/* 결과 헤더 */
+.result-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
+.result-title{font-size:15px;font-weight:700;color:var(--gray-7);display:flex;align-items:center;gap:8px;}
+.count-badge{background:var(--blue);color:#fff;border-radius:20px;padding:2px 10px;font-size:12px;font-weight:600;}
+.result-sub{font-size:12px;color:var(--gray-5);}
+.action-btn{padding:7px 14px;border:1.5px solid var(--gray-3);border-radius:7px;background:#fff;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;color:var(--gray-6);transition:all .15s;}
+.action-btn:hover{border-color:var(--blue);color:var(--blue);}
+
+/* 테이블 */
+.table-wrap{background:var(--white);border:1px solid var(--gray-3);border-radius:var(--radius);overflow:auto;box-shadow:var(--shadow);}
+table{width:100%;border-collapse:collapse;min-width:800px;}
+thead tr{background:var(--gray-2);border-bottom:2px solid var(--gray-3);}
+th{padding:11px 14px;text-align:left;font-size:12px;font-weight:600;color:var(--gray-5);white-space:nowrap;cursor:pointer;user-select:none;}
+th:hover,th.sorted{color:var(--blue);}
+tbody tr{border-bottom:1px solid var(--gray-2);transition:background .1s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:var(--gray-1);}
+td{padding:11px 14px;font-size:13px;color:var(--gray-7);}
+
+/* 배지 */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;}
+.badge-health{background:var(--green-light);color:var(--green);}
+.badge-diet{background:var(--orange-light);color:var(--orange);}
+.badge-shopping{background:var(--blue-light);color:var(--blue);}
+.badge-info{background:var(--gray-2);color:var(--gray-6);}
+
+/* 검색량 바 */
+.bar-cell{display:flex;align-items:center;gap:8px;}
+.bar-bg{flex:1;height:6px;background:var(--gray-2);border-radius:3px;overflow:hidden;min-width:50px;}
+.bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--blue),var(--blue-mid));}
+.bar-val{font-weight:600;min-width:52px;text-align:right;font-size:13px;}
+.bar-val.high{color:var(--blue);}
+
+/* 경쟁강도 */
+.comp-high{color:var(--red);font-weight:600;}
+.comp-mid{color:var(--orange);font-weight:600;}
+.comp-low{color:var(--green);font-weight:600;}
+
+/* PC/모바일 비율 */
+.ratio-bar{display:flex;height:6px;border-radius:3px;overflow:hidden;width:80px;}
+.ratio-pc{background:var(--blue);}
+.ratio-mobile{background:var(--orange);}
+
+/* 로딩 */
+.loading-wrap{display:flex;flex-direction:column;align-items:center;padding:60px 20px;gap:14px;}
+.spinner{width:36px;height:36px;border:3px solid var(--gray-3);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-text{font-size:13px;color:var(--gray-5);font-weight:500;}
+
+/* 빈 상태 */
+.empty-wrap{display:flex;flex-direction:column;align-items:center;padding:60px 20px;gap:10px;}
+.empty-icon{font-size:44px;opacity:.25;}
+.empty-text{font-size:14px;color:var(--gray-5);font-weight:500;}
+.empty-sub{font-size:12px;color:var(--gray-4);}
+
+/* 진행바 */
+.progress-wrap{display:flex;align-items:center;gap:10px;}
+.progress-bg{width:160px;height:6px;background:var(--gray-2);border-radius:3px;overflow:hidden;}
+.progress-fill{height:100%;background:var(--blue);border-radius:3px;transition:width .3s;}
+
+/* 하단 힌트 */
+.hint{font-size:11px;color:var(--gray-4);margin-top:8px;text-align:right;}
+
+/* 범례 */
+.legend{display:flex;align-items:center;gap:16px;font-size:12px;color:var(--gray-5);}
+.legend-item{display:flex;align-items:center;gap:4px;}
+.legend-dot{width:8px;height:8px;border-radius:50%;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-box">K</div>
+    키워드분석기
+  </div>
+  <div class="nav">
+    <div class="nav-item active">아이템발굴</div>
+    <div class="nav-item">키워드분석</div>
+    <div class="nav-item">랭킹추적</div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- 카테고리 -->
+  <div class="card"><div class="card-body">
+    <div class="cat-bar">
+      <div class="cat-wrap">
+        <select class="cat-select" id="cat1" onchange="onCat1Change()">
+          <option value="food">식품</option>
+        </select>
+        <span class="cat-arrow">▼</span>
+      </div>
+      <span class="cat-sep">›</span>
+      <div class="cat-wrap">
+        <select class="cat-select" id="cat2" onchange="onCat2Change()">
+          <option value="health">건강식품</option>
+          <option value="diet">다이어트식품</option>
+          <option value="both">전체 (건강+다이어트)</option>
+        </select>
+        <span class="cat-arrow">▼</span>
+      </div>
+      <span class="cat-sep">›</span>
+      <div class="cat-wrap">
+        <select class="cat-select" id="cat3" onchange="onCat3Change()">
+        </select>
+        <span class="cat-arrow">▼</span>
+      </div>
+      <span class="cat-sep">›</span>
+      <div class="cat-wrap">
+        <select class="cat-select" id="cat4">
+          <option value="">전체</option>
+        </select>
+        <span class="cat-arrow">▼</span>
+      </div>
+    </div>
+  </div></div>
+
+  <!-- 탭 -->
+  <div class="tab-bar">
+    <div class="tab active">인기 키워드</div>
+    <div class="tab">주제별 키워드</div>
+  </div>
+
+  <!-- 필터 -->
+  <div class="card"><div class="card-body">
+    <div class="filter-row">
+      <span class="filter-label">기간</span>
+      <div class="period-btns">
+        <button class="pbtn active" onclick="setPeriod(this)">최근 1개월</button>
+        <button class="pbtn" onclick="setPeriod(this)">최근 3개월</button>
+        <button class="pbtn" onclick="setPeriod(this)">최근 6개월</button>
+      </div>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">키워드 유형</span>
+      <div class="radio-group">
+        <label class="rlabel"><input type="radio" name="kwtype" value="" checked> 전체</label>
+        <label class="rlabel"><input type="radio" name="kwtype" value="shopping"> 쇼핑성</label>
+        <label class="rlabel"><input type="radio" name="kwtype" value="info"> 정보성</label>
+      </div>
+      <span class="filter-label" style="margin-left:8px;">검색수</span>
+      <div class="range-wrap">
+        <input class="range-input" id="minSearch" type="number" placeholder="최소" min="0">
+        <span style="color:var(--gray-4)">~</span>
+        <input class="range-input" id="maxSearch" type="number" placeholder="최대" min="0">
+      </div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
+        <div id="progressWrap" style="display:none;">
+          <div class="progress-wrap">
+            <div class="progress-bg"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+            <span style="font-size:11px;color:var(--gray-5);" id="progressText">0%</span>
+          </div>
+        </div>
+        <button class="search-btn" id="searchBtn" onclick="fetchData()">🔍 조회</button>
+      </div>
+    </div>
+  </div></div>
+
+  <div class="error-box" id="errorBox"></div>
+
+  <div id="resultArea">
+    <div class="empty-wrap">
+      <div class="empty-icon">📊</div>
+      <div class="empty-text">카테고리를 선택하고 조회 버튼을 눌러주세요</div>
+      <div class="empty-sub">건강식품 · 다이어트식품 카테고리 키워드 검색량을 확인할 수 있습니다</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// =============================================
+// 카테고리 데이터
+// =============================================
+const CAT_DATA = {
+  health: {
+    label: '건강식품',
+    sub: {
+      '홍삼': { seeds: ['홍삼','홍삼정','홍삼액','홍삼농축액','홍삼절편','홍삼캡슐'], cat4: ['홍삼액','홍삼정','홍삼절편','홍삼캡슐','홍삼분말'] },
+      '비타민': { seeds: ['비타민C','비타민D','비타민B','종합비타민','비타민E','멀티비타민'], cat4: ['비타민C','비타민D','비타민B12','비타민B','비타민E'] },
+      '유산균': { seeds: ['유산균','프로바이오틱스','유산균영양제','장건강유산균','여성유산균'], cat4: ['성인유산균','여성유산균','어린이유산균','임산부유산균'] },
+      '오메가3': { seeds: ['오메가3','알티지오메가3','피쉬오일','크릴오일','오메가3영양제'], cat4: ['알티지오메가3','일반오메가3','크릴오일'] },
+      '미네랄': { seeds: ['마그네슘','아연','칼슘','철분제','셀레늄','크롬'], cat4: ['마그네슘','아연','칼슘','철분제','미네랄복합'] },
+      '눈건강': { seeds: ['루테인','루테인영양제','눈건강영양제','지아잔틴','빌베리'], cat4: ['루테인','지아잔틴','빌베리','눈영양제'] },
+      '간건강': { seeds: ['밀크씨슬','간건강영양제','실리마린','헛개나무','강황'], cat4: ['밀크씨슬','헛개나무','강황','간영양제'] },
+      '항산화': { seeds: ['코엔자임Q10','글루타치온','알파리포산','항산화영양제','레스베라트롤'], cat4: ['코엔자임Q10','글루타치온','레스베라트롤'] },
+      '콜라겐': { seeds: ['콜라겐','저분자콜라겐','피쉬콜라겐','콜라겐영양제','히알루론산'], cat4: ['저분자콜라겐','피쉬콜라겐','먹는콜라겐'] },
+      '면역': { seeds: ['면역력영양제','프로폴리스','베타글루칸','아로니아','흑마늘'], cat4: ['프로폴리스','베타글루칸','흑마늘','아로니아'] },
+      '엽산': { seeds: ['엽산','임산부영양제','철분엽산','엽산영양제'], cat4: ['엽산','임산부엽산','철분+엽산'] },
+      '기타건강': { seeds: ['스피루리나','클로렐라','녹용','로얄젤리','노니'], cat4: ['스피루리나','클로렐라','녹용','로얄젤리'] },
+    }
+  },
+  diet: {
+    label: '다이어트식품',
+    sub: {
+      '단백질보충제': { seeds: ['단백질보충제','프로틴','웨이프로틴','식물성프로틴','분리유청단백'], cat4: ['웨이프로틴','식물성프로틴','카제인프로틴','두유프로틴'] },
+      '체지방감소': { seeds: ['가르시니아','CLA','L카르니틴','공액리놀레산','다이어트보조제'], cat4: ['가르시니아','CLA','L카르니틴','체지방감소영양제'] },
+      '식이섬유': { seeds: ['식이섬유','차전자피','곤약','이눌린','식이섬유영양제'], cat4: ['차전자피','곤약','이눌린','식이섬유분말'] },
+      '다이어트식품': { seeds: ['닭가슴살','다이어트쉐이크','식사대용쉐이크','저칼로리간식','단백질바'], cat4: ['닭가슴살','다이어트쉐이크','단백질바','저칼로리쿠키'] },
+      '다이어트차': { seeds: ['다이어트차','디톡스차','그린티','보이차','히비스커스'], cat4: ['그린티','보이차','히비스커스','다이어트한방차'] },
+      '다이어트보조': { seeds: ['포만감영양제','식욕억제제','다이어트환','한방다이어트','방탄커피'], cat4: ['포만감영양제','방탄커피','다이어트한약','MCT오일'] },
+      '저탄고지': { seeds: ['케토제닉','저탄고지식품','MCT오일','저탄수화물','키토제닉'], cat4: ['MCT오일','케토스낵','저탄고지식품','키토식품'] },
+    }
+  }
+};
+
+let currentSeeds = [];
+let lastResults = [];
+let sortCol = 'totalSearch';
+let sortAsc = false;
+
+// =============================================
+// 카테고리 초기화
+// =============================================
+function onCat1Change() {}
+
+function onCat2Change() {
+  const cat2 = document.getElementById('cat2').value;
+  const cat3 = document.getElementById('cat3');
+  cat3.innerHTML = '';
+  const cat4 = document.getElementById('cat4');
+  cat4.innerHTML = '<option value="">전체</option>';
+
+  if (cat2 === 'both') {
+    const all = { ...CAT_DATA.health.sub, ...CAT_DATA.diet.sub };
+    Object.keys(all).forEach(k => {
+      const opt = document.createElement('option');
+      opt.value = k; opt.textContent = k;
+      cat3.appendChild(opt);
+    });
+  } else {
+    const data = CAT_DATA[cat2];
+    Object.keys(data.sub).forEach(k => {
+      const opt = document.createElement('option');
+      opt.value = k; opt.textContent = k;
+      cat3.appendChild(opt);
+    });
+  }
+  onCat3Change();
+}
+
+function onCat3Change() {
+  const cat2 = document.getElementById('cat2').value;
+  const cat3Val = document.getElementById('cat3').value;
+  const cat4 = document.getElementById('cat4');
+  cat4.innerHTML = '<option value="">전체</option>';
+
+  let subData = null;
+  if (cat2 === 'both') {
+    const all = { ...CAT_DATA.health.sub, ...CAT_DATA.diet.sub };
+    subData = all[cat3Val];
+  } else {
+    subData = CAT_DATA[cat2]?.sub[cat3Val];
+  }
+
+  if (subData?.cat4) {
+    subData.cat4.forEach(k => {
+      const opt = document.createElement('option');
+      opt.value = k; opt.textContent = k;
+      cat4.appendChild(opt);
+    });
+  }
+}
+
+function getSeeds() {
+  const cat2 = document.getElementById('cat2').value;
+  const cat3 = document.getElementById('cat3').value;
+  const cat4 = document.getElementById('cat4').value;
+
+  if (cat4 && cat4 !== '') return [cat4];
+  if (cat3) {
+    let subData = null;
+    if (cat2 === 'both') {
+      const all = { ...CAT_DATA.health.sub, ...CAT_DATA.diet.sub };
+      subData = all[cat3];
+    } else {
+      subData = CAT_DATA[cat2]?.sub[cat3];
+    }
+    return subData?.seeds || [cat3];
+  }
+  if (cat2 === 'health') return Object.values(CAT_DATA.health.sub).flatMap(s => s.seeds.slice(0,2));
+  if (cat2 === 'diet') return Object.values(CAT_DATA.diet.sub).flatMap(s => s.seeds.slice(0,2));
+  return [...Object.values(CAT_DATA.health.sub).flatMap(s => s.seeds.slice(0,1)),
+          ...Object.values(CAT_DATA.diet.sub).flatMap(s => s.seeds.slice(0,1))];
+}
+
+function getCatLabel() {
+  const cat2 = document.getElementById('cat2').value;
+  const cat3 = document.getElementById('cat3').value;
+  const cat4 = document.getElementById('cat4').value;
+  const c2label = cat2 === 'health' ? '건강식품' : cat2 === 'diet' ? '다이어트식품' : '건강+다이어트';
+  if (cat4) return `${c2label} > ${cat3} > ${cat4}`;
+  if (cat3) return `${c2label} > ${cat3}`;
+  return c2label;
+}
+
+function getKwCategory(keyword) {
+  const healthKeys = Object.values(CAT_DATA.health.sub).flatMap(s => s.seeds);
+  const dietKeys = Object.values(CAT_DATA.diet.sub).flatMap(s => s.seeds);
+  if (healthKeys.some(k => keyword.includes(k) || k.includes(keyword))) return '건강식품';
+  if (dietKeys.some(k => keyword.includes(k) || k.includes(keyword))) return '다이어트식품';
+  const cat2 = document.getElementById('cat2').value;
+  return cat2 === 'diet' ? '다이어트식품' : '건강식품';
+}
+
+function setPeriod(btn) {
+  document.querySelectorAll('.pbtn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// =============================================
+// API 호출
+// =============================================
+async function fetchData() {
+  const seeds = getSeeds();
+  if (!seeds.length) return showError('카테고리를 선택해주세요.');
+
+  hideError();
+  const btn = document.getElementById('searchBtn');
+  btn.disabled = true; btn.textContent = '조회 중...';
+  document.getElementById('progressWrap').style.display = 'block';
+  showLoading();
+
+  try {
+    const allResults = new Map();
+    const chunkSize = 5;
+    const chunks = [];
+    for (let i = 0; i < seeds.length; i += chunkSize) chunks.push(seeds.slice(i, i + chunkSize));
+
+    for (let i = 0; i < chunks.length; i++) {
+      setProgress(Math.round(((i + 1) / chunks.length) * 100), i * chunkSize, seeds.length);
+
+      const resp = await fetch('/api/keywords', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hintKeywords: chunks[i] })
+      });
+      const data = await resp.json();
+      if (data.error) throw new Error(data.error);
+      (data.keywords || []).forEach(k => {
+        if (!allResults.has(k.keyword)) allResults.set(k.keyword, k);
+      });
+      await sleep(200);
+    }
+
+    setProgress(100, seeds.length, seeds.length);
+
+    let results = Array.from(allResults.values());
+
+    // 검색수 필터
+    const minV = parseInt(document.getElementById('minSearch').value) || 0;
+    const maxV = parseInt(document.getElementById('maxSearch').value) || Infinity;
+    if (minV > 0 || maxV < Infinity) {
+      results = results.filter(r => r.totalSearch >= minV && r.totalSearch <= maxV);
+    }
+
+    results.sort((a, b) => b.totalSearch - a.totalSearch);
+    lastResults = results.slice(0, 500);
+
+    setTimeout(() => { document.getElementById('progressWrap').style.display = 'none'; }, 800);
+    renderTable(lastResults);
+  } catch(e) {
+    showError(e.message);
+    document.getElementById('resultArea').innerHTML = '';
+    document.getElementById('progressWrap').style.display = 'none';
+  }
+
+  btn.disabled = false; btn.innerHTML = '🔍 조회';
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function setProgress(pct, done, total) {
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressText').textContent = `${Math.min(done, total)}/${total}`;
+}
+
+function showLoading() {
+  document.getElementById('resultArea').innerHTML = `
+    <div class="table-wrap"><div class="loading-wrap">
+      <div class="spinner"></div>
+      <div class="loading-text">네이버 검색광고 API에서 키워드를 수집 중...</div>
+    </div></div>`;
+}
+
+function showError(msg) {
+  const box = document.getElementById('errorBox');
+  box.textContent = '⚠️ ' + msg;
+  box.style.display = 'block';
+}
+function hideError() { document.getElementById('errorBox').style.display = 'none'; }
+
+// =============================================
+// 테이블 렌더링
+// =============================================
+function compBadge(comp) {
+  if (comp === '높음') return '<span class="comp-high">높음</span>';
+  if (comp === '중간') return '<span class="comp-mid">중간</span>';
+  return '<span class="comp-low">낮음</span>';
+}
+
+function medal(r) { return r === 1 ? '🥇' : r === 2 ? '🥈' : r === 3 ? '🥉' : ''; }
+
+function fmtNum(n) {
+  if (n >= 10000) return (n / 10000).toFixed(1) + '만';
+  return n.toLocaleString();
+}
+
+function sortData(data, col, asc) {
+  return [...data].sort((a, b) => {
+    const va = a[col], vb = b[col];
+    if (typeof va === 'string') return asc ? va.localeCompare(vb) : vb.localeCompare(va);
+    return asc ? va - vb : vb - va;
+  });
+}
+
+function si(col) {
+  if (sortCol !== col) return '<span style="color:var(--gray-3);margin-left:3px;font-size:10px;">⇅</span>';
+  return `<span style="margin-left:3px;font-size:10px;">${sortAsc ? '↑' : '↓'}</span>`;
+}
+
+function doSort(col) {
+  if (sortCol === col) sortAsc = !sortAsc; else { sortCol = col; sortAsc = false; }
+  if (lastResults.length) renderTable(lastResults);
+}
+
+function renderTable(results) {
+  if (!results.length) {
+    document.getElementById('resultArea').innerHTML = `
+      <div class="empty-wrap"><div class="empty-icon">🔍</div>
+      <div class="empty-text">조회 결과가 없습니다</div></div>`;
+    return;
+  }
+
+  const sorted = sortData(results, sortCol, sortAsc);
+  const maxSearch = Math.max(...sorted.map(r => r.totalSearch), 1);
+  const catLabel = getCatLabel();
+
+  const rows = sorted.map((r, i) => {
+    const rank = i + 1;
+    const barW = Math.round((r.totalSearch / maxSearch) * 100);
+    const kwCat = getKwCategory(r.keyword);
+    const catBadge = kwCat === '건강식품'
+      ? `<span class="badge badge-health">건강식품</span>`
+      : `<span class="badge badge-diet">다이어트식품</span>`;
+    const isHigh = r.totalSearch > 10000;
+
+    return `<tr>
+      <td><span style="color:var(--gray-5);font-weight:600;margin-right:4px;">${rank}</span>${medal(rank)}</td>
+      <td><strong>${r.keyword}</strong></td>
+      <td>${catBadge}</td>
+      <td><span class="badge badge-shopping">쇼핑성</span></td>
+      <td>
+        <div class="bar-cell">
+          <div class="bar-bg"><div class="bar-fill" style="width:${barW}%"></div></div>
+          <span class="bar-val ${isHigh ? 'high' : ''}">${fmtNum(r.totalSearch)}</span>
+        </div>
+      </td>
+      <td style="font-size:12px;color:var(--gray-6);">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div class="ratio-bar">
+            <div class="ratio-pc" style="width:${r.pcRatio}%"></div>
+            <div class="ratio-mobile" style="width:${100 - r.pcRatio}%"></div>
+          </div>
+          <span>PC ${r.pcRatio}%</span>
+        </div>
+      </td>
+      <td style="font-size:12px;color:var(--gray-5);">${fmtNum(r.monthlyPcQcCnt)}</td>
+      <td style="font-size:12px;color:var(--gray-5);">${fmtNum(r.monthlyMobileQcCnt)}</td>
+      <td>${compBadge(r.compIdx)}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('resultArea').innerHTML = `
+    <div class="result-header">
+      <div class="result-title">
+        ${catLabel}
+        <span class="count-badge">${results.length}개</span>
+        <span class="result-sub">월간 검색량 기준</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>PC</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div>모바일</div>
+        </div>
+        <button class="action-btn" onclick="downloadCSV()">⬇ CSV 저장</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th onclick="doSort('rank')" class="${sortCol==='rank'?'sorted':''}">순위${si('rank')}</th>
+          <th onclick="doSort('keyword')" class="${sortCol==='keyword'?'sorted':''}">키워드${si('keyword')}</th>
+          <th>카테고리</th>
+          <th>분류</th>
+          <th onclick="doSort('totalSearch')" class="${sortCol==='totalSearch'?'sorted':''}">월간 검색량${si('totalSearch')}</th>
+          <th>PC/모바일 비율</th>
+          <th onclick="doSort('monthlyPcQcCnt')" class="${sortCol==='monthlyPcQcCnt'?'sorted':''}">PC 검색수${si('monthlyPcQcCnt')}</th>
+          <th onclick="doSort('monthlyMobileQcCnt')" class="${sortCol==='monthlyMobileQcCnt'?'sorted':''}">모바일 검색수${si('monthlyMobileQcCnt')}</th>
+          <th onclick="doSort('compIdx')" class="${sortCol==='compIdx'?'sorted':''}">경쟁강도${si('compIdx')}</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <p class="hint">💡 월간 검색량 = PC + 모바일 합산 | 네이버 검색광고 API 기준 | 최대 500개</p>`;
+}
+
+function downloadCSV() {
+  if (!lastResults.length) return;
+  const sorted = sortData(lastResults, sortCol, sortAsc);
+  const header = ['순위','키워드','카테고리','월간검색량','PC검색수','모바일검색수','PC비율(%)','경쟁강도'];
+  const rows = sorted.map((r, i) => [i+1, r.keyword, getKwCategory(r.keyword),
+    r.totalSearch, r.monthlyPcQcCnt, r.monthlyMobileQcCnt, r.pcRatio, r.compIdx]);
+  const csv = '\uFEFF' + [header, ...rows].map(r => r.join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = `키워드분석_${getCatLabel()}.csv`;
+  a.click();
+}
+
+// 초기화
+onCat2Change();
+</script>
+</body>
+</html>
