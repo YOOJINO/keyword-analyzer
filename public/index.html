@@ -78,11 +78,11 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--gray-1);color:var(--
 .card-body{padding:18px 20px;}
 
 /* 경쟁사 분석 — 레이아웃 */
-body.view-competitor .main{max-width:none;padding:14px 14px 14px 0;}
+body.view-competitor .main{max-width:none;padding:14px 14px;}
 body.view-competitor #viewCategory,
 body.view-competitor #viewKeyword{display:none !important;}
 .comp-layout{display:flex;gap:14px;align-items:flex-start;}
-.comp-sidebar{width:240px;flex-shrink:0;padding:16px 12px;align-self:flex-start;border-top-left-radius:0;border-bottom-left-radius:0;border-left:none;}
+.comp-sidebar{width:240px;flex-shrink:0;padding:16px 12px;align-self:flex-start;}
 .comp-sidebar-title{font-size:13px;font-weight:700;color:var(--gray-6);margin-bottom:10px;padding:0 6px;letter-spacing:.3px;}
 .comp-main{flex:1;min-width:0;}
 
@@ -120,9 +120,15 @@ body.view-competitor #viewKeyword{display:none !important;}
 /* 메인 영역 */
 .comp-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;}
 .comp-active-title{font-size:16px;font-weight:700;color:var(--gray-7);}
+.comp-toolbar-actions{display:flex;align-items:center;gap:10px;}
+.comp-last-query{font-size:12px;color:var(--gray-5);font-weight:500;}
 .comp-edit-btn{padding:7px 16px;border:1.5px solid var(--gray-3);border-radius:7px;background:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--gray-7);transition:all .15s;}
 .comp-edit-btn:hover{border-color:var(--blue);color:var(--blue);}
 .comp-edit-btn.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+.comp-edit-btn:disabled{background:var(--gray-2);color:var(--gray-4);border-color:var(--gray-3);cursor:not-allowed;}
+.comp-query-btn{background:var(--blue);color:#fff;border-color:var(--blue);}
+.comp-query-btn:hover{background:var(--blue-mid);color:#fff;border-color:var(--blue-mid);}
+.comp-query-btn:disabled{background:var(--gray-3);color:#fff;border-color:var(--gray-3);}
 .comp-edit-area{display:flex;gap:8px;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--gray-2);}
 
 /* 삭제 확인 */
@@ -487,7 +493,11 @@ td{padding:11px 14px;font-size:13px;color:var(--gray-7);}
         <div class="card"><div class="card-body" style="padding:14px 18px;">
           <div class="comp-toolbar">
             <span class="comp-active-title" id="compActiveTitle"></span>
-            <button class="comp-edit-btn" id="compEditBtn" onclick="toggleEditMode()">편집</button>
+            <div class="comp-toolbar-actions">
+              <span class="comp-last-query" id="compLastQuery"></span>
+              <button class="comp-edit-btn comp-query-btn" id="compQueryBtn" onclick="queryCompetitor()">조회하기</button>
+              <button class="comp-edit-btn" id="compEditBtn" onclick="toggleEditMode()">편집</button>
+            </div>
           </div>
           <div class="comp-edit-area" id="compEditArea" style="display:none;">
             <input type="text" class="comp-input" id="compNewKw" placeholder="키워드 입력 후 Enter" onkeydown="if(event.key==='Enter')addCompKeyword()">
@@ -865,6 +875,71 @@ function renderProjectList() {
 
   const proj = activeProject();
   document.getElementById('compActiveTitle').textContent = proj ? proj.name : '';
+  const lq = document.getElementById('compLastQuery');
+  if (lq) lq.textContent = proj && proj.lastQueryDate
+    ? `최근 조회: ${formatCompDate(proj.lastQueryDate)}`
+    : '최근 조회: -';
+}
+
+function formatCompDate(iso) {
+  if (!iso) return '-';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '-';
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+async function queryCompetitor() {
+  const proj = activeProject();
+  if (!proj) return;
+  if (!proj.keywords.length) { alert('등록된 키워드가 없습니다. 편집 버튼에서 키워드를 추가해주세요.'); return; }
+  const now = new Date();
+  const curY = now.getFullYear();
+  if (proj.year !== curY) {
+    alert(`프로젝트 연도(${proj.year})와 현재 연도(${curY})가 달라 조회할 수 없습니다.\n조회는 프로젝트와 같은 연도에서만 가능합니다.`);
+    return;
+  }
+  const ym = `${curY}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+  const btn = document.getElementById('compQueryBtn');
+  btn.disabled = true;
+  btn.textContent = '조회 중...';
+
+  try {
+    const norm = s => (s || '').replace(/\s+/g, '').toLowerCase();
+    const targetMap = new Map(proj.keywords.map(kw => [norm(kw), kw]));
+    const found = {};
+    const chunkSize = 5;
+
+    for (let i = 0; i < proj.keywords.length; i += chunkSize) {
+      const chunk = proj.keywords.slice(i, i + chunkSize);
+      const resp = await fetch('/api/keywords', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hintKeywords: chunk }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error || '조회 실패');
+      for (const k of (data.keywords || [])) {
+        const orig = targetMap.get(norm(k.keyword));
+        if (orig && !(orig in found)) found[orig] = k.totalSearch;
+      }
+      await new Promise(r => setTimeout(r, 200));
+    }
+
+    if (!proj.data[ym]) proj.data[ym] = {};
+    for (const kw of proj.keywords) {
+      proj.data[ym][kw] = (kw in found) ? found[kw] : null;
+    }
+    proj.lastQueryDate = now.toISOString();
+    renderProjectList();
+    renderCompetitorGrid();
+    await saveCompetitor();
+  } catch (err) {
+    alert('조회 실패: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '조회하기';
+  }
 }
 
 function switchProject(projectId) {
