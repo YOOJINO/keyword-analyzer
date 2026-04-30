@@ -1,6 +1,6 @@
 {
   "name": "viral-marketing-lab",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "바이럴 마케팅 연구소",
   "engines": { "node": "24.x" },
   "dependencies": {
