@@ -37,7 +37,38 @@
         "2026-12": {}
       },
       "lastQueryDate": "2026-04-30T18:32:57.972Z",
-      "thresholds": null
+      "thresholds": {
+        "month": {
+          "below": {
+            "value": 1000,
+            "color": ""
+          },
+          "between": {
+            "from": null,
+            "to": null,
+            "color": ""
+          },
+          "above": {
+            "value": null,
+            "color": ""
+          }
+        },
+        "daily": {
+          "below": {
+            "value": null,
+            "color": ""
+          },
+          "between": {
+            "from": null,
+            "to": null,
+            "color": ""
+          },
+          "above": {
+            "value": null,
+            "color": ""
+          }
+        }
+      }
     }
   ],
   "activeProjectId": "p_1777567765891_1r113b"
