@@ -552,8 +552,8 @@ td{padding:11px 14px;font-size:13px;color:var(--gray-7);}
             <div class="comp-title-group">
               <span class="comp-active-title" id="compActiveTitle"></span>
               <div class="comp-mode-toggle">
-                <button class="comp-mode-btn active" id="modeMonth" onclick="setCompMode('month')">최근 한달</button>
-                <button class="comp-mode-btn" id="modeDaily" onclick="setCompMode('daily')">일일 누적</button>
+                <button class="comp-mode-btn active" id="modeDaily" onclick="setCompMode('daily')">일일 누적</button>
+                <button class="comp-mode-btn" id="modeMonth" onclick="setCompMode('month')">최근 한달</button>
               </div>
             </div>
             <div class="comp-toolbar-actions">
@@ -906,7 +906,7 @@ function activeProject() {
 }
 
 let _compEditMode = false;
-let _compMode = 'month'; // 'month' | 'daily'
+let _compMode = 'daily'; // 'daily' | 'month' (기본: 일일 누적)
 
 function setCompMode(mode) {
   _compMode = mode;
