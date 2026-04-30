@@ -46,7 +46,7 @@
           "between": {
             "from": 1001,
             "to": 9999,
-            "color": ""
+            "color": "green"
           },
           "above": {
             "value": 10000,
