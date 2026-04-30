@@ -122,6 +122,28 @@ body.view-competitor #viewKeyword{display:none !important;}
 .comp-active-title{font-size:16px;font-weight:700;color:var(--gray-7);}
 .comp-toolbar-actions{display:flex;align-items:center;gap:10px;}
 .comp-last-query{font-size:12px;color:var(--gray-5);font-weight:500;}
+.comp-mode-toggle{display:inline-flex;border:1.5px solid var(--gray-3);border-radius:7px;overflow:hidden;}
+.comp-mode-btn{background:#fff;border:none;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;color:var(--gray-7);font-family:inherit;transition:all .15s;}
+.comp-mode-btn:not(.active):hover{background:var(--gray-2);color:var(--blue);}
+.comp-mode-btn.active{background:var(--blue);color:#fff;}
+.comp-mode-btn + .comp-mode-btn{border-left:1.5px solid var(--gray-3);}
+
+/* 즐겨찾기 별표 (카테고리/키워드 조회 결과 테이블) */
+.kw-star{background:none;border:none;cursor:pointer;font-size:16px;padding:2px 6px;color:var(--gray-3);transition:color .15s,transform .15s;font-family:inherit;line-height:1;vertical-align:middle;}
+.kw-star:hover{color:#fbbf24;transform:scale(1.15);}
+.kw-star.on{color:#fbbf24;}
+
+/* 경쟁사 분석 — 즐겨찾기 우측 패널 */
+.comp-grid-row{display:flex;gap:14px;align-items:flex-start;}
+.comp-grid-card{flex:1;min-width:0;}
+.comp-fav-panel{width:220px;flex-shrink:0;padding:14px 12px;align-self:flex-start;max-height:calc(100vh - 140px);overflow-y:auto;}
+.comp-fav-panel-title{font-size:13px;font-weight:700;color:var(--gray-6);margin-bottom:10px;padding:0 4px;letter-spacing:.3px;display:flex;align-items:center;gap:4px;}
+.comp-fav-empty{font-size:12px;color:var(--gray-5);padding:10px;text-align:center;}
+.comp-fav-chip{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:7px 10px;border:1.5px solid var(--gray-3);border-radius:6px;background:#fff;font-size:12px;font-weight:500;cursor:pointer;color:var(--gray-7);font-family:inherit;width:100%;margin-bottom:4px;text-align:left;transition:all .15s;}
+.comp-fav-chip:hover:not(:disabled){border-color:var(--blue);color:var(--blue);background:var(--blue-light);}
+.comp-fav-chip:disabled{background:var(--gray-2);color:var(--gray-5);cursor:default;border-color:var(--gray-3);}
+.comp-fav-chip-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.comp-fav-chip-mark{font-size:13px;font-weight:700;}
 .comp-edit-btn{padding:7px 16px;border:1.5px solid var(--gray-3);border-radius:7px;background:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--gray-7);transition:all .15s;}
 .comp-edit-btn:hover{border-color:var(--blue);color:var(--blue);}
 .comp-edit-btn.active{background:var(--blue);color:#fff;border-color:var(--blue);}
@@ -503,6 +525,10 @@ td{padding:11px 14px;font-size:13px;color:var(--gray-7);}
           <div class="comp-toolbar">
             <span class="comp-active-title" id="compActiveTitle"></span>
             <div class="comp-toolbar-actions">
+              <div class="comp-mode-toggle">
+                <button class="comp-mode-btn active" id="modeMonth" onclick="setCompMode('month')">최근 한달</button>
+                <button class="comp-mode-btn" id="modeDaily" onclick="setCompMode('daily')">일일 누적</button>
+              </div>
               <span class="comp-last-query" id="compLastQuery"></span>
               <button class="comp-edit-btn comp-query-btn" id="compQueryBtn" onclick="queryCompetitor()">조회하기</button>
               <button class="comp-edit-btn" id="compEditBtn" onclick="toggleEditMode()">편집</button>
@@ -513,11 +539,17 @@ td{padding:11px 14px;font-size:13px;color:var(--gray-7);}
             <button class="comp-add-btn" onclick="addCompKeyword()">+ 키워드 추가</button>
           </div>
         </div></div>
-        <div class="card"><div class="card-body" style="padding:0;overflow:auto;">
-          <div id="compGridArea">
-            <div style="text-align:center;padding:60px 20px;color:var(--gray-5);font-size:13px;">로딩 중...</div>
-          </div>
-        </div></div>
+        <div class="comp-grid-row">
+          <div class="card comp-grid-card"><div class="card-body" style="padding:0;overflow:auto;">
+            <div id="compGridArea">
+              <div style="text-align:center;padding:60px 20px;color:var(--gray-5);font-size:13px;">로딩 중...</div>
+            </div>
+          </div></div>
+          <aside class="card comp-fav-panel" id="compFavPanel" style="display:none;">
+            <div class="comp-fav-panel-title">⭐ 즐겨찾기</div>
+            <div id="compFavList"></div>
+          </aside>
+        </div>
       </div>
     </div>
   </div>
@@ -843,6 +875,28 @@ function activeProject() {
 }
 
 let _compEditMode = false;
+let _compMode = 'month'; // 'month' | 'daily'
+
+function setCompMode(mode) {
+  _compMode = mode;
+  document.getElementById('modeMonth').classList.toggle('active', mode === 'month');
+  document.getElementById('modeDaily').classList.toggle('active', mode === 'daily');
+  renderCompetitorGrid();
+}
+
+function calcDailyCumul(monthKey, monthlyValue) {
+  if (typeof monthlyValue !== 'number') return null;
+  const today = new Date();
+  const curY = today.getFullYear();
+  const curM = today.getMonth() + 1;
+  const [y, m] = monthKey.split('-').map(Number);
+  if (y > curY || (y === curY && m > curM)) return null;
+  if (y === curY && m === curM) {
+    const days = today.getDate();
+    return Math.round(monthlyValue / 30 * days);
+  }
+  return monthlyValue;
+}
 
 async function loadCompetitorData() {
   const area = document.getElementById('compGridArea');
@@ -1097,10 +1151,13 @@ function setEditMode(on) {
   _compEditMode = !!on;
   const btn = document.getElementById('compEditBtn');
   const area = document.getElementById('compEditArea');
+  const favPanel = document.getElementById('compFavPanel');
   if (!btn || !area) return;
   btn.classList.toggle('active', _compEditMode);
   btn.textContent = _compEditMode ? '완료' : '편집';
   area.style.display = _compEditMode ? 'flex' : 'none';
+  if (favPanel) favPanel.style.display = _compEditMode ? 'block' : 'none';
+  if (_compEditMode) renderFavoritesPanel();
   renderCompetitorGrid();
 }
 
@@ -1251,26 +1308,13 @@ function renderCompetitorGrid() {
     </th>`;
   }).join('');
 
-  const rows = months.map((m, mIdx) => {
+  const rows = months.map(m => {
     const cells = keywords.map(kw => {
       const v = data[m.key]?.[kw];
-      // 1월부터 해당 월까지 누적 합 계산
-      let cumulative = 0;
-      let hasAny = false;
-      for (let i = 0; i <= mIdx; i++) {
-        const val = data[months[i].key]?.[kw];
-        if (typeof val === 'number') { cumulative += val; hasAny = true; }
-      }
-      if (v === null || v === undefined) {
-        if (hasAny) {
-          return `<td class="empty"><div>-</div><div class="comp-cell-cumul">누적 ${cumulative.toLocaleString()}</div></td>`;
-        }
-        return `<td class="empty">-</td>`;
-      }
-      return `<td>
-        <div class="comp-cell-month">${Number(v).toLocaleString()}</div>
-        <div class="comp-cell-cumul">누적 ${cumulative.toLocaleString()}</div>
-      </td>`;
+      if (v === null || v === undefined) return `<td class="empty">-</td>`;
+      const display = _compMode === 'daily' ? calcDailyCumul(m.key, v) : v;
+      if (display === null || display === undefined) return `<td class="empty">-</td>`;
+      return `<td>${Number(display).toLocaleString()}</td>`;
     }).join('');
     return `<tr class="${m.future ? 'future' : ''}"><td>${m.label}</td>${cells}</tr>`;
   }).join('');
@@ -1301,6 +1345,7 @@ async function addCompKeyword() {
   proj.keywords.push(kw);
   input.value = '';
   renderCompetitorGrid();
+  if (_compEditMode) renderFavoritesPanel();
   await saveCompetitor();
 }
 
@@ -1310,6 +1355,7 @@ async function removeCompKeyword(kw) {
   if (!confirm(`키워드 "${kw}"을(를) 삭제하시겠습니까?\n해당 키워드의 모든 월별 데이터도 함께 삭제됩니다.`)) return;
   proj.keywords = proj.keywords.filter(k => k !== kw);
   renderCompetitorGrid();
+  if (_compEditMode) renderFavoritesPanel();
   await saveCompetitor();
 }
 
@@ -1506,9 +1552,13 @@ function renderTable(results) {
     const isHigh = r.totalSearch > 10000;
     const avgClk = (r.monthlyAvePcClkCnt || 0) + (r.monthlyAveMobileClkCnt || 0);
 
+    const isFav = _favorites.has(r.keyword);
     return `<tr>
       <td><span style="color:var(--gray-5);font-weight:600;margin-right:4px;">${rank}</span>${medal(rank)}</td>
-      <td><strong>${r.keyword}</strong></td>
+      <td>
+        <button class="kw-star${isFav ? ' on' : ''}" onclick="toggleFavorite('${escapeAttr ? escapeAttr(r.keyword) : r.keyword.replace(/'/g, "\\'")}', this)" title="즐겨찾기">${isFav ? '★' : '☆'}</button>
+        <strong>${r.keyword}</strong>
+      </td>
       ${v.has('category') ? `<td>${catBadge}</td>` : ''}
       ${v.has('classification') ? `<td><span class="badge badge-shopping">쇼핑성</span></td>` : ''}
       ${v.has('totalSearch') ? `<td>
@@ -1628,6 +1678,76 @@ let currentUser = null;
 
 const PERM_TO_VIEW = { category: 'Category', keyword: 'Keyword', competitor: 'Competitor' };
 const PERM_LABEL = { category: '카테고리 조회', keyword: '키워드 조회', competitor: '경쟁사 분석' };
+
+let _favorites = new Set();
+
+async function loadFavoritesData() {
+  try {
+    const resp = await fetch('/api/favorites');
+    if (!resp.ok) return;
+    const data = await resp.json();
+    _favorites = new Set(data.favorites || []);
+  } catch {}
+}
+
+async function toggleFavorite(kw, btn) {
+  const isFav = _favorites.has(kw);
+  const oldClass = btn.className;
+  const oldText = btn.textContent;
+  btn.disabled = true;
+  try {
+    const resp = await fetch('/api/favorites', {
+      method: isFav ? 'DELETE' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ keyword: kw }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || '실패');
+    _favorites = new Set(data.favorites || []);
+    if (_favorites.has(kw)) {
+      btn.classList.add('on');
+      btn.textContent = '★';
+    } else {
+      btn.classList.remove('on');
+      btn.textContent = '☆';
+    }
+  } catch (err) {
+    btn.className = oldClass;
+    btn.textContent = oldText;
+    alert(err.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function renderFavoritesPanel() {
+  const list = document.getElementById('compFavList');
+  if (!list) return;
+  const proj = activeProject();
+  const projKw = new Set(proj?.keywords || []);
+  const favs = [..._favorites];
+  if (!favs.length) {
+    list.innerHTML = '<div class="comp-fav-empty">즐겨찾기한 키워드가 없습니다.<br><br>카테고리 조회 / 키워드 조회에서 ★ 버튼을 눌러 추가하세요.</div>';
+    return;
+  }
+  list.innerHTML = favs.map(kw => {
+    const added = projKw.has(kw);
+    return `<button class="comp-fav-chip" onclick="addFavToProject('${escapeAttr(kw)}')" ${added ? 'disabled' : ''}>
+      <span class="comp-fav-chip-name">${escapeHtml(kw)}</span>
+      <span class="comp-fav-chip-mark">${added ? '✓' : '+'}</span>
+    </button>`;
+  }).join('');
+}
+
+async function addFavToProject(kw) {
+  const proj = activeProject();
+  if (!proj) return;
+  if (proj.keywords.includes(kw)) return;
+  proj.keywords.push(kw);
+  renderCompetitorGrid();
+  renderFavoritesPanel();
+  await saveCompetitor();
+}
 
 async function checkAuth() {
   try {
@@ -1859,7 +1979,11 @@ async function addUser(e) {
 
 
 // 초기화 — 인증 통과 시에만 카테고리 init
-checkAuth().then(ok => { if (ok) onCat2Change(); });
+checkAuth().then(async ok => {
+  if (!ok) return;
+  await loadFavoritesData();
+  onCat2Change();
+});
 </script>
 </body>
 </html>
