@@ -18,15 +18,25 @@ export async function findUser(id) {
   return users.find(u => u.id === id) || null;
 }
 
-export async function createUser({ id, password, role }) {
+const ALL_PERMS = ['category', 'keyword', 'competitor'];
+
+function normalizePerms(role, perms) {
+  if (role === 'admin') return ALL_PERMS;
+  if (!Array.isArray(perms)) return [];
+  return perms.filter(p => ALL_PERMS.includes(p));
+}
+
+export async function createUser({ id, password, role, permissions }) {
   const data = await loadUsers();
   if (data.users.find(u => u.id === id)) {
     throw new Error('이미 존재하는 ID입니다.');
   }
+  const finalRole = role === 'admin' ? 'admin' : 'user';
   const user = {
     id,
     passwordHash: hashPassword(password),
-    role: role === 'admin' ? 'admin' : 'user',
+    role: finalRole,
+    permissions: normalizePerms(finalRole, permissions),
     createdAt: new Date().toISOString(),
   };
   data.users.push(user);
@@ -34,12 +44,15 @@ export async function createUser({ id, password, role }) {
   return sanitize(user);
 }
 
-export async function updateUser(id, { password, role }) {
+export async function updateUser(id, { password, role, permissions }) {
   const data = await loadUsers();
   const user = data.users.find(u => u.id === id);
   if (!user) throw new Error('사용자를 찾을 수 없습니다.');
   if (password) user.passwordHash = hashPassword(password);
   if (role && (role === 'admin' || role === 'user')) user.role = role;
+  if (permissions !== undefined || role) {
+    user.permissions = normalizePerms(user.role, permissions !== undefined ? permissions : user.permissions);
+  }
   await saveUsers(data, `Update user ${id}`);
   return sanitize(user);
 }
