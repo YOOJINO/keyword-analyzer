@@ -72,7 +72,7 @@ export async function deleteUser(id) {
 
 export function sanitize(user) {
   const { passwordHash, ...rest } = user;
-  return rest;
+  return rest; // password (평문) 포함 — 관리자 전용 엔드포인트에서만 사용
 }
 
 export async function listUsersSafe() {
