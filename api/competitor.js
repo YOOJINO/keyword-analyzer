@@ -42,6 +42,7 @@ export default async function handler(req, res) {
           year: Number(p.year) || new Date().getFullYear(),
           keywords,
           data,
+          lastQueryDate: p.lastQueryDate || null,
         };
       });
       const activeProjectId = body.activeProjectId && cleaned.find(p => p.id === body.activeProjectId)
