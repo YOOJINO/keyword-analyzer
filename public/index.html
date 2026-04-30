@@ -46,6 +46,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--gray-1);color:var(--
 .user-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--gray-1);border-radius:8px;}
 .user-row-id{font-weight:600;color:var(--gray-7);font-size:14px;}
 .user-row-role{font-size:11px;color:var(--gray-5);background:var(--white);padding:2px 8px;border-radius:10px;border:1px solid var(--gray-3);margin-left:6px;}
+.user-row-perm{font-size:10px;color:var(--blue);background:var(--blue-light);padding:2px 7px;border-radius:8px;font-weight:500;}
 .user-row-actions{display:flex;gap:6px;}
 .um-btn{padding:5px 10px;border:1.5px solid var(--gray-3);border-radius:5px;background:#fff;font-size:11px;font-weight:500;cursor:pointer;color:var(--gray-6);font-family:inherit;}
 .um-btn:hover{border-color:var(--blue);color:var(--blue);}
@@ -403,11 +404,17 @@ td{padding:11px 14px;font-size:13px;color:var(--gray-7);}
       <form class="um-add-form" onsubmit="addUser(event)">
         <input type="text" class="um-input id-field" id="newUserId" placeholder="새 ID" required>
         <input type="password" class="um-input pw-field" id="newUserPw" placeholder="비밀번호 (4자+)" required>
-        <select class="um-input role-field" id="newUserRole">
+        <select class="um-input role-field" id="newUserRole" onchange="onRoleChange()">
           <option value="user">일반 사용자</option>
           <option value="admin">관리자</option>
         </select>
         <button type="submit" class="um-add-btn">추가</button>
+        <div class="um-perms" id="newUserPerms" style="flex-basis:100%;display:flex;gap:14px;align-items:center;padding:8px 0 0 0;flex-wrap:wrap;">
+          <span style="font-size:12px;font-weight:600;color:var(--gray-6);">권한:</span>
+          <label class="vo-check"><input type="checkbox" data-newperm="category" checked> 카테고리 조회</label>
+          <label class="vo-check"><input type="checkbox" data-newperm="keyword" checked> 키워드 조회</label>
+          <label class="vo-check"><input type="checkbox" data-newperm="competitor" checked> 경쟁사 분석</label>
+        </div>
       </form>
     </div>
   </div>
@@ -965,6 +972,9 @@ function resetViewOptions() {
 // =============================================
 let currentUser = null;
 
+const PERM_TO_VIEW = { category: 'Category', keyword: 'Keyword', competitor: 'Competitor' };
+const PERM_LABEL = { category: '카테고리 조회', keyword: '키워드 조회', competitor: '경쟁사 분석' };
+
 async function checkAuth() {
   try {
     const resp = await fetch('/api/me');
@@ -979,11 +989,34 @@ async function checkAuth() {
     if (currentUser.role === 'admin') {
       document.getElementById('adminBtn').style.display = 'inline-block';
     }
+    applyNavPermissions();
     return true;
   } catch {
     location.href = '/login.html';
     return false;
   }
+}
+
+function applyNavPermissions() {
+  const navItems = document.querySelectorAll('.nav .nav-item');
+  const perms = currentUser.permissions || [];
+  const order = ['category', 'keyword', 'competitor'];
+  let firstVisibleIdx = -1;
+  navItems.forEach((el, i) => {
+    const has = currentUser.role === 'admin' || perms.includes(order[i]);
+    el.style.display = has ? '' : 'none';
+    if (has && firstVisibleIdx < 0) firstVisibleIdx = i;
+  });
+  // 현재 active가 숨겨졌으면 첫 보이는 메뉴로 전환
+  const activeEl = document.querySelector('.nav .nav-item.active');
+  if (activeEl && activeEl.style.display === 'none' && firstVisibleIdx >= 0) {
+    navItems[firstVisibleIdx].click();
+  }
+}
+
+function onRoleChange() {
+  const role = document.getElementById('newUserRole').value;
+  document.getElementById('newUserPerms').style.display = role === 'user' ? 'flex' : 'none';
 }
 
 async function doLogout() {
@@ -1014,18 +1047,29 @@ async function refreshUserList() {
       list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--gray-5);font-size:13px;">등록된 사용자가 없습니다.</div>';
       return;
     }
-    list.innerHTML = data.users.map(u => `
+    list.innerHTML = data.users.map(u => {
+      const perms = u.role === 'admin' ? ['category', 'keyword', 'competitor'] : (u.permissions || []);
+      const permsLabel = u.role === 'admin'
+        ? '<span style="font-size:11px;color:var(--gray-5);">전체</span>'
+        : (perms.length
+            ? perms.map(p => `<span class="user-row-perm">${PERM_LABEL[p] || p}</span>`).join('')
+            : '<span style="font-size:11px;color:var(--gray-4);">권한 없음</span>');
+      return `
       <div class="user-row">
-        <div>
-          <span class="user-row-id">${u.id}</span>
-          <span class="user-row-role">${u.role === 'admin' ? '관리자' : '일반'}</span>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <div>
+            <span class="user-row-id">${u.id}</span>
+            <span class="user-row-role">${u.role === 'admin' ? '관리자' : '일반'}</span>
+          </div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;">${permsLabel}</div>
         </div>
         <div class="user-row-actions">
           <button class="um-btn" onclick="changePassword('${u.id}')">비번변경</button>
+          ${u.role !== 'admin' ? `<button class="um-btn" onclick='changePermissions(${JSON.stringify(u.id)}, ${JSON.stringify(perms)})'>권한</button>` : ''}
           ${u.id !== currentUser.id ? `<button class="um-btn danger" onclick="removeUser('${u.id}')">삭제</button>` : ''}
         </div>
       </div>
-    `).join('');
+    `;}).join('');
   } catch (e) {
     list.innerHTML = `<div style="color:var(--red);padding:12px;font-size:13px;">${e.message}</div>`;
   }
@@ -1036,16 +1080,40 @@ async function addUser(e) {
   const id = document.getElementById('newUserId').value.trim();
   const password = document.getElementById('newUserPw').value;
   const role = document.getElementById('newUserRole').value;
+  const permissions = Array.from(document.querySelectorAll('[data-newperm]:checked')).map(cb => cb.dataset.newperm);
   try {
     const resp = await fetch('/api/users', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, password, role }),
+      body: JSON.stringify({ id, password, role, permissions }),
     });
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.error || '추가 실패');
     document.getElementById('newUserId').value = '';
     document.getElementById('newUserPw').value = '';
+    document.querySelectorAll('[data-newperm]').forEach(cb => cb.checked = true);
+    await refreshUserList();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+async function changePermissions(id, currentPerms) {
+  const labels = ['category', 'keyword', 'competitor'].map(p => `${PERM_LABEL[p]} (${p})`).join(' / ');
+  const input = prompt(
+    `"${id}" 의 권한 설정\n\n허용할 항목을 쉼표로 구분 입력 (예: category, keyword)\n선택 가능: ${labels}\n빈칸 입력 시 모든 권한 제거`,
+    (currentPerms || []).join(', ')
+  );
+  if (input === null) return;
+  const permissions = input.split(',').map(s => s.trim()).filter(Boolean);
+  try {
+    const resp = await fetch('/api/users', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, permissions }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || '변경 실패');
     await refreshUserList();
   } catch (err) {
     alert(err.message);
