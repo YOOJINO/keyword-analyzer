@@ -678,10 +678,20 @@ document.addEventListener('click', _mpCloseAll);
 // =============================================
 // API 호출
 // =============================================
+function getCurrentPeriodLabel() {
+  const activeBtn = document.querySelector('.pbtn.active');
+  if (!activeBtn || activeBtn.textContent.trim() === '최근 30일') return '최근 30일';
+  const f = document.getElementById('dateFrom').value;
+  const t = document.getElementById('dateTo').value;
+  if (f && t) return `${f} ~ ${t}`;
+  return '과거 선택';
+}
+
 async function fetchData() {
   const seeds = getSeeds();
   if (!seeds.length) return showError('카테고리를 선택해주세요.');
 
+  lastPeriodLabel = getCurrentPeriodLabel();
   hideError();
   const btn = document.getElementById('searchBtn');
   btn.disabled = true; btn.textContent = '조회 중...';
