@@ -43,7 +43,18 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--gray-1);color:var(--
 .modal-close{background:none;border:none;font-size:20px;color:var(--gray-5);cursor:pointer;font-family:inherit;}
 .modal-body{padding:18px 22px;}
 .user-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
-.user-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--gray-1);border-radius:8px;}
+.user-row-wrap{background:var(--gray-1);border-radius:8px;border:1px solid transparent;transition:border-color .15s;}
+.user-row-wrap.editing{border-color:var(--blue);}
+.user-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;}
+.user-row-editor{display:none;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 14px;border-top:1px solid var(--gray-3);background:var(--white);border-radius:0 0 7px 7px;}
+.user-row-editor.open{display:flex;}
+.user-row-editor .um-input{flex:1 1 160px;width:auto;}
+.um-btn.primary{background:var(--blue);color:#fff;border-color:var(--blue);}
+.um-btn.primary:hover{background:var(--blue-mid);border-color:var(--blue-mid);}
+.um-btn.danger-solid{background:var(--red);color:#fff;border-color:var(--red);}
+.um-btn.danger-solid:hover{background:#e63946;border-color:#e63946;}
+.editor-msg{font-size:13px;color:var(--gray-7);flex:1;min-width:140px;}
+.editor-msg.warn{color:var(--red);font-weight:500;}
 .user-row-id{font-weight:600;color:var(--gray-7);font-size:14px;}
 .user-row-role{font-size:11px;color:var(--gray-5);background:var(--white);padding:2px 8px;border-radius:10px;border:1px solid var(--gray-3);margin-left:6px;}
 .user-row-perm{font-size:10px;color:var(--blue);background:var(--blue-light);padding:2px 7px;border-radius:8px;font-weight:500;}
@@ -1036,6 +1047,8 @@ function closeUserManager() {
   document.getElementById('userModal').classList.remove('open');
 }
 
+let _userListCache = [];
+
 async function refreshUserList() {
   const list = document.getElementById('userList');
   list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--gray-5);font-size:13px;">로딩 중...</div>';
@@ -1043,11 +1056,12 @@ async function refreshUserList() {
     const resp = await fetch('/api/users');
     if (!resp.ok) throw new Error((await resp.json()).error || '사용자 목록 로드 실패');
     const data = await resp.json();
+    _userListCache = data.users;
     if (!data.users.length) {
       list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--gray-5);font-size:13px;">등록된 사용자가 없습니다.</div>';
       return;
     }
-    list.innerHTML = data.users.map(u => {
+    list.innerHTML = data.users.map((u, i) => {
       const perms = u.role === 'admin' ? ['category', 'keyword', 'competitor'] : (u.permissions || []);
       const permsLabel = u.role === 'admin'
         ? '<span style="font-size:11px;color:var(--gray-5);">전체</span>'
@@ -1055,23 +1069,125 @@ async function refreshUserList() {
             ? perms.map(p => `<span class="user-row-perm">${PERM_LABEL[p] || p}</span>`).join('')
             : '<span style="font-size:11px;color:var(--gray-4);">권한 없음</span>');
       return `
-      <div class="user-row">
-        <div style="display:flex;flex-direction:column;gap:4px;">
-          <div>
-            <span class="user-row-id">${u.id}</span>
-            <span class="user-row-role">${u.role === 'admin' ? '관리자' : '일반'}</span>
+      <div class="user-row-wrap" id="urw-${i}">
+        <div class="user-row">
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <div>
+              <span class="user-row-id">${u.id}</span>
+              <span class="user-row-role">${u.role === 'admin' ? '관리자' : '일반'}</span>
+            </div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;">${permsLabel}</div>
           </div>
-          <div style="display:flex;gap:4px;flex-wrap:wrap;">${permsLabel}</div>
+          <div class="user-row-actions">
+            <button class="um-btn" onclick="openEditor(${i}, 'password')">비번변경</button>
+            ${u.role !== 'admin' ? `<button class="um-btn" onclick="openEditor(${i}, 'perms')">권한</button>` : ''}
+            ${u.id !== currentUser.id ? `<button class="um-btn danger" onclick="openEditor(${i}, 'delete')">삭제</button>` : ''}
+          </div>
         </div>
-        <div class="user-row-actions">
-          <button class="um-btn" onclick="changePassword('${u.id}')">비번변경</button>
-          ${u.role !== 'admin' ? `<button class="um-btn" onclick='changePermissions(${JSON.stringify(u.id)}, ${JSON.stringify(perms)})'>권한</button>` : ''}
-          ${u.id !== currentUser.id ? `<button class="um-btn danger" onclick="removeUser('${u.id}')">삭제</button>` : ''}
-        </div>
-      </div>
-    `;}).join('');
+        <div class="user-row-editor" id="ure-${i}"></div>
+      </div>`;
+    }).join('');
   } catch (e) {
     list.innerHTML = `<div style="color:var(--red);padding:12px;font-size:13px;">${e.message}</div>`;
+  }
+}
+
+function closeAllEditors() {
+  document.querySelectorAll('.user-row-editor').forEach(el => {
+    el.classList.remove('open');
+    el.innerHTML = '';
+  });
+  document.querySelectorAll('.user-row-wrap').forEach(el => el.classList.remove('editing'));
+}
+
+function openEditor(idx, mode) {
+  closeAllEditors();
+  const u = _userListCache[idx];
+  if (!u) return;
+  const editor = document.getElementById(`ure-${idx}`);
+  const wrap = document.getElementById(`urw-${idx}`);
+  if (mode === 'password') {
+    editor.innerHTML = `
+      <input type="password" class="um-input" id="pw-${idx}" placeholder="새 비밀번호 (4자+)" autocomplete="new-password">
+      <button class="um-btn" onclick="closeAllEditors()">취소</button>
+      <button class="um-btn primary" onclick="savePassword(${idx})">저장</button>
+    `;
+  } else if (mode === 'perms') {
+    const perms = u.permissions || [];
+    editor.innerHTML = `
+      <label class="vo-check"><input type="checkbox" data-editperm="category" ${perms.includes('category') ? 'checked' : ''}> 카테고리 조회</label>
+      <label class="vo-check"><input type="checkbox" data-editperm="keyword" ${perms.includes('keyword') ? 'checked' : ''}> 키워드 조회</label>
+      <label class="vo-check"><input type="checkbox" data-editperm="competitor" ${perms.includes('competitor') ? 'checked' : ''}> 경쟁사 분석</label>
+      <button class="um-btn" onclick="closeAllEditors()">취소</button>
+      <button class="um-btn primary" onclick="savePermissionsAt(${idx})">저장</button>
+    `;
+  } else if (mode === 'delete') {
+    editor.innerHTML = `
+      <span class="editor-msg warn">"${u.id}" 사용자를 삭제하시겠습니까?</span>
+      <button class="um-btn" onclick="closeAllEditors()">취소</button>
+      <button class="um-btn danger-solid" onclick="doDelete(${idx})">삭제</button>
+    `;
+  }
+  editor.classList.add('open');
+  wrap.classList.add('editing');
+  const firstInput = editor.querySelector('input');
+  if (firstInput) firstInput.focus();
+}
+
+async function savePassword(idx) {
+  const u = _userListCache[idx];
+  if (!u) return;
+  const pw = document.getElementById(`pw-${idx}`).value;
+  if (pw.length < 4) return alert('비밀번호는 4자 이상이어야 합니다.');
+  try {
+    const resp = await fetch('/api/users', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: u.id, password: pw }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || '변경 실패');
+    closeAllEditors();
+    await refreshUserList();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+async function savePermissionsAt(idx) {
+  const u = _userListCache[idx];
+  if (!u) return;
+  const permissions = Array.from(document.querySelectorAll(`#ure-${idx} [data-editperm]:checked`)).map(cb => cb.dataset.editperm);
+  try {
+    const resp = await fetch('/api/users', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: u.id, permissions }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || '변경 실패');
+    closeAllEditors();
+    await refreshUserList();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+async function doDelete(idx) {
+  const u = _userListCache[idx];
+  if (!u) return;
+  try {
+    const resp = await fetch('/api/users', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: u.id }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || '삭제 실패');
+    closeAllEditors();
+    await refreshUserList();
+  } catch (err) {
+    alert(err.message);
   }
 }
 
@@ -1098,61 +1214,6 @@ async function addUser(e) {
   }
 }
 
-async function changePermissions(id, currentPerms) {
-  const labels = ['category', 'keyword', 'competitor'].map(p => `${PERM_LABEL[p]} (${p})`).join(' / ');
-  const input = prompt(
-    `"${id}" 의 권한 설정\n\n허용할 항목을 쉼표로 구분 입력 (예: category, keyword)\n선택 가능: ${labels}\n빈칸 입력 시 모든 권한 제거`,
-    (currentPerms || []).join(', ')
-  );
-  if (input === null) return;
-  const permissions = input.split(',').map(s => s.trim()).filter(Boolean);
-  try {
-    const resp = await fetch('/api/users', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, permissions }),
-    });
-    const data = await resp.json();
-    if (!resp.ok) throw new Error(data.error || '변경 실패');
-    await refreshUserList();
-  } catch (err) {
-    alert(err.message);
-  }
-}
-
-async function removeUser(id) {
-  if (!confirm(`사용자 "${id}" 를 삭제하시겠습니까?`)) return;
-  try {
-    const resp = await fetch('/api/users', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id }),
-    });
-    const data = await resp.json();
-    if (!resp.ok) throw new Error(data.error || '삭제 실패');
-    await refreshUserList();
-  } catch (err) {
-    alert(err.message);
-  }
-}
-
-async function changePassword(id) {
-  const password = prompt(`"${id}" 의 새 비밀번호 (4자 이상):`);
-  if (!password) return;
-  if (password.length < 4) return alert('비밀번호는 4자 이상이어야 합니다.');
-  try {
-    const resp = await fetch('/api/users', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, password }),
-    });
-    const data = await resp.json();
-    if (!resp.ok) throw new Error(data.error || '변경 실패');
-    alert('비밀번호가 변경되었습니다.');
-  } catch (err) {
-    alert(err.message);
-  }
-}
 
 // 초기화 — 인증 통과 시에만 카테고리 init
 checkAuth().then(ok => { if (ok) onCat2Change(); });
