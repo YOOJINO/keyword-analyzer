@@ -95,6 +95,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--gray-1);color:var(--
 /* 결과 헤더 */
 .result-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
 .result-title{font-size:15px;font-weight:700;color:var(--gray-7);display:flex;align-items:center;gap:8px;}
+.result-period{font-size:13px;font-weight:500;color:var(--gray-6);background:var(--gray-2);padding:3px 10px;border-radius:12px;}
 .count-badge{background:var(--blue);color:#fff;border-radius:20px;padding:2px 10px;font-size:12px;font-weight:600;}
 .result-sub{font-size:12px;color:var(--gray-5);}
 .action-btn{padding:7px 14px;border:1.5px solid var(--gray-3);border-radius:7px;background:#fff;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;color:var(--gray-6);transition:all .15s;}
@@ -259,9 +260,9 @@ td{padding:11px 14px;font-size:13px;color:var(--gray-7);}
     </div>
     <div class="filter-toggle-row" onclick="toggleFilter()">
       <span class="filter-label">필터 선택</span>
-      <span id="filterToggleIcon" style="color:var(--gray-4);font-size:11px;margin-left:6px;">▼</span>
+      <span id="filterToggleIcon" style="color:var(--gray-4);font-size:11px;margin-left:6px;">▶</span>
     </div>
-    <div id="filterDetail">
+    <div id="filterDetail" style="display:none;">
       <div class="filter-section-row">
         <span class="filter-label">키워드 유형</span>
         <div class="filter-section-content">
@@ -841,6 +842,7 @@ function renderTable(results) {
       <div class="result-title">
         ${catLabel}
         <span class="count-badge">${results.length}개</span>
+        <span class="result-period">${lastPeriodLabel}</span>
         <span class="result-sub">월간 검색량 기준</span>
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
