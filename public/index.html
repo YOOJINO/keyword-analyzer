@@ -42,11 +42,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--gray-1);color:var(--
 .cat-arrow{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--gray-4);font-size:10px;pointer-events:none;}
 .cat-sep{color:var(--gray-3);font-size:18px;}
 
-/* 탭 */
-.tab-bar{display:flex;background:var(--white);border:1px solid var(--gray-3);border-radius:var(--radius);overflow:hidden;margin-bottom:14px;box-shadow:var(--shadow);}
-.tab{flex:1;padding:13px;text-align:center;cursor:pointer;font-size:13px;font-weight:500;color:var(--gray-5);border-bottom:2px solid transparent;transition:all .15s;}
-.tab.active{color:var(--blue);border-bottom-color:var(--blue);background:var(--blue-light);}
-
 /* 필터 */
 .filter-row{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:14px;}
 .filter-row:last-child{margin-bottom:0;}
@@ -205,12 +200,6 @@ td{padding:11px 14px;font-size:13px;color:var(--gray-7);}
       </span>
     </div>
   </div></div>
-
-  <!-- 탭 -->
-  <div class="tab-bar">
-    <div class="tab active">인기 키워드</div>
-    <div class="tab">주제별 키워드</div>
-  </div>
 
   <!-- 필터 -->
   <div class="card">
