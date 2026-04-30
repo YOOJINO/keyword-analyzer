@@ -1,7 +1,9 @@
 {
-  "name": "keyword-analyzer",
+  "name": "viral-marketing-lab",
   "version": "1.0.0",
-  "description": "네이버 검색광고 API 키워드 분석기",
-  "engines": { "node": "24.x" }
+  "description": "바이럴 마케팅 연구소",
+  "engines": { "node": "24.x" },
+  "dependencies": {
+    "jsonwebtoken": "^9.0.2"
+  }
 }
- 
