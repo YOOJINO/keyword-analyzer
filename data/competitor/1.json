@@ -41,7 +41,7 @@
         "month": {
           "below": {
             "value": 1000,
-            "color": "red"
+            "color": "green"
           },
           "between": {
             "from": 1001,
