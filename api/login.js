@@ -22,6 +22,7 @@ export default async function handler(req, res) {
       }
       const newAdmin = {
         id: bootUser,
+        password: bootPass,
         passwordHash: hashPassword(bootPass),
         role: 'admin',
         permissions: ['category', 'keyword', 'competitor'],
