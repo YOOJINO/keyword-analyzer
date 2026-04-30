@@ -24,13 +24,14 @@ export default async function handler(req, res) {
         id: bootUser,
         passwordHash: hashPassword(bootPass),
         role: 'admin',
+        permissions: ['category', 'keyword', 'competitor'],
         createdAt: new Date().toISOString(),
       };
       data.users.push(newAdmin);
       await saveUsers(data, `Bootstrap admin ${bootUser}`);
-      const token = signToken({ id: newAdmin.id, role: newAdmin.role });
+      const token = signToken({ id: newAdmin.id, role: newAdmin.role, permissions: newAdmin.permissions });
       setAuthCookie(res, token);
-      return res.status(200).json({ ok: true, user: { id: newAdmin.id, role: newAdmin.role } });
+      return res.status(200).json({ ok: true, user: { id: newAdmin.id, role: newAdmin.role, permissions: newAdmin.permissions } });
     }
 
     // 일반 로그인
@@ -39,9 +40,10 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'ID 또는 비밀번호가 올바르지 않습니다.' });
     }
 
-    const token = signToken({ id: user.id, role: user.role });
+    const permissions = user.role === 'admin' ? ['category', 'keyword', 'competitor'] : (user.permissions || []);
+    const token = signToken({ id: user.id, role: user.role, permissions });
     setAuthCookie(res, token);
-    return res.status(200).json({ ok: true, user: { id: user.id, role: user.role } });
+    return res.status(200).json({ ok: true, user: { id: user.id, role: user.role, permissions } });
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
