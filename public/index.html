@@ -743,8 +743,7 @@ function compBadge(comp) {
 function medal(r) { return r === 1 ? '🥇' : r === 2 ? '🥈' : r === 3 ? '🥉' : ''; }
 
 function fmtNum(n) {
-  if (n >= 10000) return (n / 10000).toFixed(1) + '만';
-  return n.toLocaleString();
+  return (n || 0).toLocaleString();
 }
 
 function sortData(data, col, asc) {
