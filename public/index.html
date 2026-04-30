@@ -171,7 +171,6 @@ td{padding:11px 14px;font-size:13px;color:var(--gray-7);}
         <select class="cat-select" id="cat2" onchange="onCat2Change()">
           <option value="health">건강식품</option>
           <option value="diet">다이어트식품</option>
-          <option value="both">전체 (건강+다이어트)</option>
         </select>
         <span class="cat-arrow">▼</span>
       </div>
@@ -252,30 +251,123 @@ const CAT_DATA = {
   health: {
     label: '건강식품',
     sub: {
-      '홍삼': { seeds: ['홍삼','홍삼정','홍삼액','홍삼농축액','홍삼절편','홍삼캡슐'], cat4: ['홍삼액','홍삼정','홍삼절편','홍삼캡슐','홍삼분말'] },
-      '비타민': { seeds: ['비타민C','비타민D','비타민B','종합비타민','비타민E','멀티비타민'], cat4: ['비타민C','비타민D','비타민B12','비타민B','비타민E'] },
-      '유산균': { seeds: ['유산균','프로바이오틱스','유산균영양제','장건강유산균','여성유산균'], cat4: ['성인유산균','여성유산균','어린이유산균','임산부유산균'] },
-      '오메가3': { seeds: ['오메가3','알티지오메가3','피쉬오일','크릴오일','오메가3영양제'], cat4: ['알티지오메가3','일반오메가3','크릴오일'] },
-      '미네랄': { seeds: ['마그네슘','아연','칼슘','철분제','셀레늄','크롬'], cat4: ['마그네슘','아연','칼슘','철분제','미네랄복합'] },
-      '눈건강': { seeds: ['루테인','루테인영양제','눈건강영양제','지아잔틴','빌베리'], cat4: ['루테인','지아잔틴','빌베리','눈영양제'] },
-      '간건강': { seeds: ['밀크씨슬','간건강영양제','실리마린','헛개나무','강황'], cat4: ['밀크씨슬','헛개나무','강황','간영양제'] },
-      '항산화': { seeds: ['코엔자임Q10','글루타치온','알파리포산','항산화영양제','레스베라트롤'], cat4: ['코엔자임Q10','글루타치온','레스베라트롤'] },
-      '콜라겐': { seeds: ['콜라겐','저분자콜라겐','피쉬콜라겐','콜라겐영양제','히알루론산'], cat4: ['저분자콜라겐','피쉬콜라겐','먹는콜라겐'] },
-      '면역': { seeds: ['면역력영양제','프로폴리스','베타글루칸','아로니아','흑마늘'], cat4: ['프로폴리스','베타글루칸','흑마늘','아로니아'] },
-      '엽산': { seeds: ['엽산','임산부영양제','철분엽산','엽산영양제'], cat4: ['엽산','임산부엽산','철분+엽산'] },
-      '기타건강': { seeds: ['스피루리나','클로렐라','녹용','로얄젤리','노니'], cat4: ['스피루리나','클로렐라','녹용','로얄젤리'] },
+      '비타민제': {
+        seeds: ['멀티비타민','비타민A','비타민B','비타민C','비타민D','비타민E','비오틴','비타민K'],
+        cat4: ['멀티비타민','비타민A','비타민B','비타민C','비타민D','비타민E','비오틴','비타민K','기타비타민']
+      },
+      '한방재료': {
+        seeds: ['가시오가피','감초','계피','구기자','녹용','산수유','오미자','헛개나무','황기'],
+        cat4: ['가시오가피','감초','계피','구기자','녹용','산수유','오미자','헛개나무','황기','기타한방재료']
+      },
+      '영양제': {
+        seeds: ['엽산','아연','철분','칼슘','마그네슘','프로폴리스','글루코사민','오메가3','루테인','쏘팔메토','밀크씨슬','프로바이오틱스','코큐텐','스피루리나','보스웰리아','셀레늄','크릴오일','은행잎추출물','테아닌','커큐민','멜라토닌','마카','이노시톨'],
+        cat4: ['엽산','아연','철분','칼슘','마그네슘','프로폴리스','글루코사민','오메가3','감마리놀렌산','루테인','쏘팔메토','키토산','알로에겔','코큐텐','스피루리나','글로코라','프로바이오틱스','밀크씨슬','폴리코사놀','보스웰리아','셀레늄','칼륨','MSM','프리바이오틱스','크릴오일','루테지오잔','은행잎추출물','콘드로이친','테아닌','포스파티딜세린','대마종자유','마카','베스틱검','멜라토닌','바나바잎추출물','이노시톨','커큐민','기타건강보조식품']
+      },
+      '건강환/정': {
+        seeds: ['건강환','건강정','홍삼환','유산균환','다이어트환'],
+        cat4: []
+      },
+      '인삼': {
+        seeds: ['인삼','수삼','백삼','인삼액','인삼정과'],
+        cat4: []
+      },
+      '꿀': {
+        seeds: ['꿀','천연꿀','아카시아꿀','잡화꿀','벌꿀'],
+        cat4: []
+      },
+      '건강즙/과일즙': {
+        seeds: ['양배추즙','양파즙','호박즙','비트즙','칡즙','토마토즙','배즙','블루베리즙','아로니아즙','석류즙'],
+        cat4: ['양배추즙','양파즙','호박즙','비트즙','칡즙','토마토즙','기타건강즙','배즙','블루베리즙','사과즙','석류즙','아로니아즙','포도즙','흑염소즙']
+      },
+      '홍삼': {
+        seeds: ['홍삼','홍삼액','홍삼정과','홍삼절편','홍삼캡슐','홍삼환'],
+        cat4: ['기타홍삼제품','정과/절편','캡슐/환','혼합세트','홍삼액']
+      },
+      '환자식/영양보충식': {
+        seeds: ['환자식','영양보충식','고칼로리식품','연하식','경관식'],
+        cat4: []
+      },
+      '로얄젤리': {
+        seeds: ['로얄젤리','로얄젤리원액','로얄젤리캡슐'],
+        cat4: []
+      },
+      '숙취해소제': {
+        seeds: ['숙취해소제','숙취해소음료','컨디션','여명808'],
+        cat4: []
+      },
+      '효모': {
+        seeds: ['효모','맥주효모','효모정','영양효모'],
+        cat4: []
+      },
+      '건강분말': {
+        seeds: ['강황가루','새싹보리분말','맥문동분말','건강분말'],
+        cat4: ['강황가루','기타건강분말','맥문동분말','새싹보리분말']
+      },
     }
   },
   diet: {
     label: '다이어트식품',
     sub: {
-      '단백질보충제': { seeds: ['단백질보충제','프로틴','웨이프로틴','식물성프로틴','분리유청단백'], cat4: ['웨이프로틴','식물성프로틴','카제인프로틴','두유프로틴'] },
-      '체지방감소': { seeds: ['가르시니아','CLA','L카르니틴','공액리놀레산','다이어트보조제'], cat4: ['가르시니아','CLA','L카르니틴','체지방감소영양제'] },
-      '식이섬유': { seeds: ['식이섬유','차전자피','곤약','이눌린','식이섬유영양제'], cat4: ['차전자피','곤약','이눌린','식이섬유분말'] },
-      '다이어트식품': { seeds: ['닭가슴살','다이어트쉐이크','식사대용쉐이크','저칼로리간식','단백질바'], cat4: ['닭가슴살','다이어트쉐이크','단백질바','저칼로리쿠키'] },
-      '다이어트차': { seeds: ['다이어트차','디톡스차','그린티','보이차','히비스커스'], cat4: ['그린티','보이차','히비스커스','다이어트한방차'] },
-      '다이어트보조': { seeds: ['포만감영양제','식욕억제제','다이어트환','한방다이어트','방탄커피'], cat4: ['포만감영양제','방탄커피','다이어트한약','MCT오일'] },
-      '저탄고지': { seeds: ['케토제닉','저탄고지식품','MCT오일','저탄수화물','키토제닉'], cat4: ['MCT오일','케토스낵','저탄고지식품','키토식품'] },
+      '기타다이어트식품': {
+        seeds: ['다이어트식품','다이어트보조제','체중감량','살빼는약','다이어트영양제'],
+        cat4: []
+      },
+      '다이어트차': {
+        seeds: ['다이어트차','디톡스차','보이차','우롱차','녹차다이어트'],
+        cat4: []
+      },
+      '식이섬유': {
+        seeds: ['식이섬유','차전자피','곤약','이눌린','식이섬유분말'],
+        cat4: []
+      },
+      '가르시니아': {
+        seeds: ['가르시니아','가르시니아캄보지아','가르시니아추출물'],
+        cat4: []
+      },
+      'CLA': {
+        seeds: ['CLA','공액리놀레산','CLA영양제'],
+        cat4: []
+      },
+      '콜라겐': {
+        seeds: ['콜라겐','저분자콜라겐','피쉬콜라겐','먹는콜라겐','콜라겐파우더'],
+        cat4: []
+      },
+      '와일드망고': {
+        seeds: ['와일드망고','아프리카망고','와일드망고씨추출물'],
+        cat4: []
+      },
+      '잔티젠': {
+        seeds: ['잔티젠','후코잔틴','갈조류추출물'],
+        cat4: []
+      },
+      '카테킨': {
+        seeds: ['카테킨','녹차추출물','EGCG','녹차카테킨'],
+        cat4: []
+      },
+      '히알루론산': {
+        seeds: ['히알루론산','히아루론산','히알루론산영양제'],
+        cat4: []
+      },
+      '레몬밤': {
+        seeds: ['레몬밤','레몬밤추출물','레몬밤영양제'],
+        cat4: []
+      },
+      '단백질보충제': {
+        seeds: ['단백질보충제','프로틴','웨이프로틴','식물성프로틴','아르기닌','단백질파우더'],
+        cat4: ['기타단백질보충제','단백질음료','단백질추어블','단백질파우더','아르기닌']
+      },
+      '시네트롤': {
+        seeds: ['시네트롤','시트러스추출물','비터오렌지추출물'],
+        cat4: []
+      },
+      '시서스': {
+        seeds: ['시서스','시서스추출물','시서스다이어트'],
+        cat4: []
+      },
+      '락토페린': {
+        seeds: ['락토페린','락토페린영양제','유청락토페린'],
+        cat4: []
+      },
     }
   }
 };
@@ -296,22 +388,12 @@ function onCat2Change() {
   cat3.innerHTML = '';
   const cat4 = document.getElementById('cat4');
   cat4.innerHTML = '<option value="">전체</option>';
-
-  if (cat2 === 'both') {
-    const all = { ...CAT_DATA.health.sub, ...CAT_DATA.diet.sub };
-    Object.keys(all).forEach(k => {
-      const opt = document.createElement('option');
-      opt.value = k; opt.textContent = k;
-      cat3.appendChild(opt);
-    });
-  } else {
-    const data = CAT_DATA[cat2];
-    Object.keys(data.sub).forEach(k => {
-      const opt = document.createElement('option');
-      opt.value = k; opt.textContent = k;
-      cat3.appendChild(opt);
-    });
-  }
+  const data = CAT_DATA[cat2];
+  Object.keys(data.sub).forEach(k => {
+    const opt = document.createElement('option');
+    opt.value = k; opt.textContent = k;
+    cat3.appendChild(opt);
+  });
   onCat3Change();
 }
 
@@ -320,16 +402,8 @@ function onCat3Change() {
   const cat3Val = document.getElementById('cat3').value;
   const cat4 = document.getElementById('cat4');
   cat4.innerHTML = '<option value="">전체</option>';
-
-  let subData = null;
-  if (cat2 === 'both') {
-    const all = { ...CAT_DATA.health.sub, ...CAT_DATA.diet.sub };
-    subData = all[cat3Val];
-  } else {
-    subData = CAT_DATA[cat2]?.sub[cat3Val];
-  }
-
-  if (subData?.cat4) {
+  const subData = CAT_DATA[cat2]?.sub[cat3Val];
+  if (subData?.cat4?.length) {
     subData.cat4.forEach(k => {
       const opt = document.createElement('option');
       opt.value = k; opt.textContent = k;
@@ -342,29 +416,19 @@ function getSeeds() {
   const cat2 = document.getElementById('cat2').value;
   const cat3 = document.getElementById('cat3').value;
   const cat4 = document.getElementById('cat4').value;
-
   if (cat4 && cat4 !== '') return [cat4];
   if (cat3) {
-    let subData = null;
-    if (cat2 === 'both') {
-      const all = { ...CAT_DATA.health.sub, ...CAT_DATA.diet.sub };
-      subData = all[cat3];
-    } else {
-      subData = CAT_DATA[cat2]?.sub[cat3];
-    }
+    const subData = CAT_DATA[cat2]?.sub[cat3];
     return subData?.seeds || [cat3];
   }
-  if (cat2 === 'health') return Object.values(CAT_DATA.health.sub).flatMap(s => s.seeds.slice(0,2));
-  if (cat2 === 'diet') return Object.values(CAT_DATA.diet.sub).flatMap(s => s.seeds.slice(0,2));
-  return [...Object.values(CAT_DATA.health.sub).flatMap(s => s.seeds.slice(0,1)),
-          ...Object.values(CAT_DATA.diet.sub).flatMap(s => s.seeds.slice(0,1))];
+  return Object.values(CAT_DATA[cat2].sub).flatMap(s => s.seeds.slice(0, 2));
 }
 
 function getCatLabel() {
   const cat2 = document.getElementById('cat2').value;
   const cat3 = document.getElementById('cat3').value;
   const cat4 = document.getElementById('cat4').value;
-  const c2label = cat2 === 'health' ? '건강식품' : cat2 === 'diet' ? '다이어트식품' : '건강+다이어트';
+  const c2label = cat2 === 'health' ? '건강식품' : '다이어트식품';
   if (cat4) return `${c2label} > ${cat3} > ${cat4}`;
   if (cat3) return `${c2label} > ${cat3}`;
   return c2label;
