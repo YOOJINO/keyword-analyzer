@@ -77,27 +77,57 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--gray-1);color:var(--
 .card{background:var(--white);border:1px solid var(--gray-3);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:14px;}
 .card-body{padding:18px 20px;}
 
-/* 경쟁사 분석 */
-.comp-tabs-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--gray-2);}
-.comp-tab{display:flex;align-items:center;gap:6px;padding:8px 14px;border:1.5px solid var(--gray-3);border-radius:8px;background:var(--white);font-size:13px;font-weight:500;color:var(--gray-6);cursor:pointer;transition:all .15s;}
-.comp-tab:hover{border-color:var(--blue);color:var(--blue);}
-.comp-tab.active{background:var(--blue);border-color:var(--blue);color:#fff;}
-.comp-tab-name{font-family:inherit;}
-.comp-tab-name-input{border:none;background:rgba(255,255,255,.2);color:#fff;font-size:13px;font-weight:500;font-family:inherit;padding:0 4px;border-radius:4px;outline:none;width:140px;}
-.comp-tab-icon{background:none;border:none;color:inherit;cursor:pointer;font-size:13px;padding:2px 4px;border-radius:4px;font-family:inherit;line-height:1;opacity:.85;}
-.comp-tab-icon:hover{opacity:1;background:rgba(255,255,255,.2);}
-.comp-tab.active .comp-tab-icon:hover{background:rgba(0,0,0,.15);}
-.comp-tab-add{padding:8px 14px;border:1.5px dashed var(--gray-3);border-radius:8px;background:var(--white);font-size:13px;font-weight:500;color:var(--gray-5);cursor:pointer;font-family:inherit;transition:all .15s;}
-.comp-tab-add:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-light);}
-.comp-confirm{padding:10px 14px;background:var(--red-light);border:1px solid var(--red);border-radius:8px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
-.comp-confirm-msg{font-size:13px;color:var(--red);font-weight:500;}
-.comp-confirm-actions{display:flex;gap:8px;}
-.comp-confirm-btn{padding:6px 14px;border:1.5px solid var(--gray-3);border-radius:6px;background:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;}
+/* 경쟁사 분석 — 레이아웃 */
+.comp-layout{display:flex;gap:14px;align-items:flex-start;}
+.comp-sidebar{width:240px;flex-shrink:0;padding:16px 12px;align-self:flex-start;}
+.comp-sidebar-title{font-size:13px;font-weight:700;color:var(--gray-6);margin-bottom:10px;padding:0 6px;letter-spacing:.3px;}
+.comp-main{flex:1;min-width:0;}
+
+/* 경쟁사 분석 — 사이드바 프로젝트 리스트 */
+.comp-proj-item{display:flex;align-items:center;gap:6px;padding:9px 10px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--gray-7);font-weight:500;margin-bottom:2px;transition:all .15s;}
+.comp-proj-item:hover{background:var(--gray-2);}
+.comp-proj-item.active{background:var(--blue-light);color:var(--blue);font-weight:600;}
+.comp-proj-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.comp-proj-year{font-size:11px;color:var(--gray-5);font-weight:500;margin-left:auto;}
+.comp-proj-item.active .comp-proj-year{color:var(--blue);opacity:.7;}
+.comp-proj-actions{display:none;gap:2px;}
+.comp-proj-item.active .comp-proj-actions{display:flex;}
+.comp-proj-action{background:none;border:none;color:inherit;cursor:pointer;font-size:11px;padding:2px 5px;border-radius:3px;font-family:inherit;line-height:1;opacity:.75;}
+.comp-proj-action:hover{opacity:1;background:rgba(0,0,0,.08);}
+.comp-proj-name-input{flex:1;border:1.5px solid var(--blue);border-radius:4px;padding:3px 6px;font-size:13px;font-weight:500;font-family:inherit;outline:none;color:var(--gray-7);}
+
+.comp-add-project-btn{width:100%;margin-top:10px;padding:9px;border:1.5px dashed var(--gray-3);border-radius:6px;background:transparent;font-size:12px;font-weight:500;color:var(--gray-5);cursor:pointer;font-family:inherit;transition:all .15s;}
+.comp-add-project-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-light);}
+
+/* 새 프로젝트 폼 */
+.comp-create-form{padding:12px;border:1.5px solid var(--blue);border-radius:8px;background:var(--blue-light);margin-top:10px;}
+.comp-create-title{font-size:12px;font-weight:700;color:var(--blue);margin-bottom:10px;}
+.comp-create-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+.comp-create-row label{font-size:11px;color:var(--gray-6);font-weight:600;min-width:32px;}
+.comp-create-input{flex:1;border:1.5px solid var(--gray-3);border-radius:5px;padding:6px 8px;font-size:12px;font-family:inherit;color:var(--gray-7);background:#fff;width:100%;box-sizing:border-box;min-width:0;}
+.comp-create-input:focus{outline:none;border-color:var(--blue);}
+.comp-create-actions{display:flex;gap:6px;justify-content:flex-end;margin-top:10px;}
+.comp-create-btn{padding:6px 14px;border:1.5px solid var(--gray-3);border-radius:5px;background:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--gray-7);}
+.comp-create-btn:hover{border-color:var(--blue);color:var(--blue);}
+.comp-create-btn.primary{background:var(--blue);color:#fff;border-color:var(--blue);}
+.comp-create-btn.primary:hover{background:var(--blue-mid);}
+
+/* 메인 영역 */
+.comp-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;}
+.comp-active-title{font-size:16px;font-weight:700;color:var(--gray-7);}
+.comp-edit-btn{padding:7px 16px;border:1.5px solid var(--gray-3);border-radius:7px;background:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--gray-7);transition:all .15s;}
+.comp-edit-btn:hover{border-color:var(--blue);color:var(--blue);}
+.comp-edit-btn.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+.comp-edit-area{display:flex;gap:8px;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--gray-2);}
+
+/* 삭제 확인 */
+.comp-confirm{padding:10px 12px;background:var(--red-light);border:1px solid var(--red);border-radius:6px;}
+.comp-confirm-msg{font-size:12px;color:var(--red);font-weight:500;display:block;margin-bottom:8px;}
+.comp-confirm-actions{display:flex;gap:6px;justify-content:flex-end;}
+.comp-confirm-btn{padding:5px 12px;border:1.5px solid var(--gray-3);border-radius:5px;background:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;}
 .comp-confirm-btn.danger{background:var(--red);color:#fff;border-color:var(--red);}
 .comp-confirm-btn.danger:hover{background:#e63946;border-color:#e63946;}
-.comp-toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;}
-.comp-year-wrap{display:flex;align-items:center;gap:10px;}
-.comp-year{font-size:18px;font-weight:700;color:var(--gray-7);background:var(--blue-light);color:var(--blue);padding:4px 14px;border-radius:8px;}
+
 .comp-add{display:flex;gap:8px;align-items:center;flex:1;max-width:480px;}
 .comp-input{flex:1;border:1.5px solid var(--gray-3);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;color:var(--gray-7);background:var(--white);}
 .comp-input:focus{outline:none;border-color:var(--blue);}
@@ -426,25 +456,46 @@ td{padding:11px 14px;font-size:13px;color:var(--gray-7);}
 
   <!-- 경쟁사 분석 뷰 -->
   <div id="viewCompetitor" style="display:none;">
-    <div class="card"><div class="card-body" style="padding:14px 18px;">
-      <div class="comp-tabs-row" id="compTabsRow"></div>
-      <div class="comp-confirm" id="compConfirm" style="display:none;"></div>
-      <div class="comp-toolbar">
-        <div class="comp-year-wrap">
-          <span style="font-size:13px;color:var(--gray-6);font-weight:500;">연도</span>
-          <span class="comp-year" id="compYear">2026</span>
+    <div class="comp-layout">
+      <aside class="card comp-sidebar">
+        <div class="comp-sidebar-title">프로젝트</div>
+        <div id="compProjectList"></div>
+        <button class="comp-add-project-btn" id="compAddProjectBtn" onclick="startAddProject()">+ 새 프로젝트</button>
+        <div class="comp-create-form" id="compCreateForm" style="display:none;">
+          <div class="comp-create-title">새 프로젝트</div>
+          <div class="comp-create-row">
+            <label>연도</label>
+            <input type="number" class="comp-create-input" id="compNewYear" min="2020" max="2100">
+          </div>
+          <div class="comp-create-row">
+            <label>이름</label>
+            <input type="text" class="comp-create-input" id="compNewName" maxlength="40" onkeydown="if(event.key==='Enter')confirmAddProject()">
+          </div>
+          <div class="comp-create-actions">
+            <button class="comp-create-btn" onclick="cancelAddProject()">취소</button>
+            <button class="comp-create-btn primary" onclick="confirmAddProject()">만들기</button>
+          </div>
         </div>
-        <div class="comp-add">
-          <input type="text" class="comp-input" id="compNewKw" placeholder="키워드 입력 후 Enter" onkeydown="if(event.key==='Enter')addCompKeyword()">
-          <button class="comp-add-btn" onclick="addCompKeyword()">+ 키워드 추가</button>
-        </div>
+        <div class="comp-confirm" id="compConfirm" style="display:none;margin-top:10px;"></div>
+      </aside>
+      <div class="comp-main">
+        <div class="card"><div class="card-body" style="padding:14px 18px;">
+          <div class="comp-toolbar">
+            <span class="comp-active-title" id="compActiveTitle"></span>
+            <button class="comp-edit-btn" id="compEditBtn" onclick="toggleEditMode()">편집</button>
+          </div>
+          <div class="comp-edit-area" id="compEditArea" style="display:none;">
+            <input type="text" class="comp-input" id="compNewKw" placeholder="키워드 입력 후 Enter" onkeydown="if(event.key==='Enter')addCompKeyword()">
+            <button class="comp-add-btn" onclick="addCompKeyword()">+ 키워드 추가</button>
+          </div>
+        </div></div>
+        <div class="card"><div class="card-body" style="padding:0;overflow:auto;">
+          <div id="compGridArea">
+            <div style="text-align:center;padding:60px 20px;color:var(--gray-5);font-size:13px;">로딩 중...</div>
+          </div>
+        </div></div>
       </div>
-    </div></div>
-    <div class="card"><div class="card-body" style="padding:0;overflow:auto;">
-      <div id="compGridArea">
-        <div style="text-align:center;padding:60px 20px;color:var(--gray-5);font-size:13px;">로딩 중...</div>
-      </div>
-    </div></div>
+    </div>
   </div>
 
   <div class="error-box" id="errorBox"></div>
@@ -766,6 +817,8 @@ function activeProject() {
   return _compState.projects.find(p => p.id === _compState.activeProjectId) || _compState.projects[0] || null;
 }
 
+let _compEditMode = false;
+
 async function loadCompetitorData() {
   const area = document.getElementById('compGridArea');
   area.innerHTML = '<div class="comp-empty">로딩 중...</div>';
@@ -776,57 +829,96 @@ async function loadCompetitorData() {
       throw new Error(err.error || '로드 실패');
     }
     _compState = await resp.json();
-    renderProjectTabs();
+    setEditMode(false);
+    cancelAddProject();
+    renderProjectList();
     renderCompetitorGrid();
   } catch (err) {
     area.innerHTML = `<div class="comp-empty" style="color:var(--red);">${err.message}</div>`;
   }
 }
 
-function renderProjectTabs() {
-  const tabsRow = document.getElementById('compTabsRow');
-  if (!_compState) return tabsRow.innerHTML = '';
-  const tabs = _compState.projects.map(p => {
+function renderProjectList() {
+  const list = document.getElementById('compProjectList');
+  if (!_compState) return list.innerHTML = '';
+  list.innerHTML = _compState.projects.map(p => {
     const isActive = p.id === _compState.activeProjectId;
     const canDelete = _compState.projects.length > 1;
     return `
-      <div class="comp-tab ${isActive ? 'active' : ''}" onclick="switchProject('${p.id}')">
-        <span class="comp-tab-name" id="ptn-${p.id}">${escapeHtml(p.name)}</span>
+      <div class="comp-proj-item ${isActive ? 'active' : ''}" onclick="switchProject('${p.id}')">
+        <span class="comp-proj-name" id="ptn-${p.id}">${escapeHtml(p.name)}</span>
+        <span class="comp-proj-year">${p.year}</span>
         ${isActive ? `
-          <button class="comp-tab-icon" onclick="event.stopPropagation();startRenameProject('${p.id}')" title="이름 변경">✏️</button>
-          ${canDelete ? `<button class="comp-tab-icon" onclick="event.stopPropagation();askDeleteProject('${p.id}')" title="삭제">×</button>` : ''}
+          <div class="comp-proj-actions">
+            <button class="comp-proj-action" onclick="event.stopPropagation();startRenameProject('${p.id}')" title="이름 변경">✏️</button>
+            ${canDelete ? `<button class="comp-proj-action" onclick="event.stopPropagation();askDeleteProject('${p.id}')" title="삭제">×</button>` : ''}
+          </div>
         ` : ''}
       </div>`;
   }).join('');
-  tabsRow.innerHTML = tabs + `<button class="comp-tab-add" onclick="addProject()">+ 새 프로젝트</button>`;
+
+  const proj = activeProject();
+  document.getElementById('compActiveTitle').textContent = proj ? `${proj.name} · ${proj.year}` : '';
 }
 
 function switchProject(projectId) {
   if (!_compState) return;
   if (_compState.activeProjectId === projectId) return;
   _compState.activeProjectId = projectId;
+  setEditMode(false);
   document.getElementById('compConfirm').style.display = 'none';
-  renderProjectTabs();
+  renderProjectList();
   renderCompetitorGrid();
   saveCompetitor();
 }
 
-async function addProject() {
-  if (!_compState) return;
+function setEditMode(on) {
+  _compEditMode = !!on;
+  const btn = document.getElementById('compEditBtn');
+  const area = document.getElementById('compEditArea');
+  if (!btn || !area) return;
+  btn.classList.toggle('active', _compEditMode);
+  btn.textContent = _compEditMode ? '완료' : '편집';
+  area.style.display = _compEditMode ? 'flex' : 'none';
+  renderCompetitorGrid();
+}
+
+function toggleEditMode() {
+  setEditMode(!_compEditMode);
+}
+
+function startAddProject() {
+  document.getElementById('compAddProjectBtn').style.display = 'none';
+  document.getElementById('compConfirm').style.display = 'none';
+  const form = document.getElementById('compCreateForm');
+  document.getElementById('compNewYear').value = new Date().getFullYear();
+  document.getElementById('compNewName').value = `프로젝트 ${(_compState?.projects?.length || 0) + 1}`;
+  form.style.display = 'block';
+  document.getElementById('compNewYear').focus();
+  document.getElementById('compNewYear').select();
+}
+
+function cancelAddProject() {
+  const form = document.getElementById('compCreateForm');
+  const btn = document.getElementById('compAddProjectBtn');
+  if (form) form.style.display = 'none';
+  if (btn) btn.style.display = 'block';
+}
+
+async function confirmAddProject() {
+  const yearVal = parseInt(document.getElementById('compNewYear').value, 10);
+  const nameVal = document.getElementById('compNewName').value.trim();
+  if (!yearVal || yearVal < 2020 || yearVal > 2100) return alert('연도는 2020~2100 사이로 입력해주세요.');
+  if (!nameVal) return alert('프로젝트 이름을 입력해주세요.');
   const id = 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-  const year = new Date().getFullYear();
   const months = {};
-  for (let m = 1; m <= 12; m++) months[`${year}-${String(m).padStart(2, '0')}`] = {};
-  const newProject = {
-    id,
-    name: `프로젝트 ${_compState.projects.length + 1}`,
-    year,
-    keywords: [],
-    data: months,
-  };
+  for (let m = 1; m <= 12; m++) months[`${yearVal}-${String(m).padStart(2, '0')}`] = {};
+  const newProject = { id, name: nameVal.slice(0, 40), year: yearVal, keywords: [], data: months };
   _compState.projects.push(newProject);
   _compState.activeProjectId = id;
-  renderProjectTabs();
+  cancelAddProject();
+  setEditMode(false);
+  renderProjectList();
   renderCompetitorGrid();
   await saveCompetitor();
 }
@@ -838,13 +930,13 @@ function startRenameProject(projectId) {
   if (!span) return;
   const input = document.createElement('input');
   input.type = 'text';
-  input.className = 'comp-tab-name-input';
+  input.className = 'comp-proj-name-input';
   input.value = proj.name;
   input.maxLength = 40;
   input.addEventListener('click', e => e.stopPropagation());
   input.addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); commitRename(projectId, input.value); }
-    else if (e.key === 'Escape') { renderProjectTabs(); }
+    else if (e.key === 'Escape') { renderProjectList(); }
   });
   input.addEventListener('blur', () => commitRename(projectId, input.value));
   span.replaceWith(input);
@@ -857,39 +949,40 @@ async function commitRename(projectId, newName) {
   if (!proj) return;
   const trimmed = String(newName || '').trim();
   if (!trimmed || trimmed === proj.name) {
-    renderProjectTabs();
+    renderProjectList();
     return;
   }
   proj.name = trimmed.slice(0, 40);
-  renderProjectTabs();
+  renderProjectList();
   await saveCompetitor();
 }
 
 function askDeleteProject(projectId) {
   const proj = _compState.projects.find(p => p.id === projectId);
   if (!proj) return;
-  const confirm = document.getElementById('compConfirm');
-  confirm.innerHTML = `
-    <span class="comp-confirm-msg">프로젝트 "${escapeHtml(proj.name)}" 을(를) 삭제하시겠습니까? (모든 키워드와 데이터가 함께 삭제됩니다)</span>
+  const confirmBox = document.getElementById('compConfirm');
+  confirmBox.innerHTML = `
+    <span class="comp-confirm-msg">"${escapeHtml(proj.name)}" 삭제하시겠습니까? (모든 키워드/데이터 함께 삭제)</span>
     <div class="comp-confirm-actions">
       <button class="comp-confirm-btn" onclick="document.getElementById('compConfirm').style.display='none'">취소</button>
       <button class="comp-confirm-btn danger" onclick="doDeleteProject('${projectId}')">삭제</button>
     </div>`;
-  confirm.style.display = 'flex';
+  confirmBox.style.display = 'block';
 }
 
 async function doDeleteProject(projectId) {
   if (!_compState) return;
   _compState.projects = _compState.projects.filter(p => p.id !== projectId);
   if (_compState.projects.length === 0) {
-    // 프로젝트가 모두 사라지면 빈 기본 프로젝트 자동 생성
-    return addProject();
+    document.getElementById('compConfirm').style.display = 'none';
+    return startAddProject();
   }
   if (_compState.activeProjectId === projectId) {
     _compState.activeProjectId = _compState.projects[0].id;
   }
   document.getElementById('compConfirm').style.display = 'none';
-  renderProjectTabs();
+  setEditMode(false);
+  renderProjectList();
   renderCompetitorGrid();
   await saveCompetitor();
 }
@@ -898,7 +991,6 @@ function renderCompetitorGrid() {
   const area = document.getElementById('compGridArea');
   const proj = activeProject();
   if (!proj) return area.innerHTML = '';
-  document.getElementById('compYear').textContent = proj.year;
   const { keywords, data, year } = proj;
   const today = new Date();
   const curY = today.getFullYear();
@@ -917,7 +1009,7 @@ function renderCompetitorGrid() {
     area.innerHTML = `
       <div class="comp-empty">
         등록된 키워드가 없습니다.<br>
-        위 입력창에 키워드를 입력하고 추가해주세요.
+        우측 상단 <strong>편집</strong> 버튼을 눌러 키워드를 추가해주세요.
       </div>`;
     return;
   }
@@ -926,7 +1018,7 @@ function renderCompetitorGrid() {
     <th>
       <div class="comp-kw-cell">
         <span class="comp-kw-name">${escapeHtml(kw)}</span>
-        <button class="comp-kw-del" onclick="removeCompKeyword('${escapeAttr(kw)}')" title="삭제">×</button>
+        ${_compEditMode ? `<button class="comp-kw-del" onclick="removeCompKeyword('${escapeAttr(kw)}')" title="삭제">×</button>` : ''}
       </div>
     </th>
   `).join('');
