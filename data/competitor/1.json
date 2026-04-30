@@ -65,7 +65,7 @@
           },
           "above": {
             "value": null,
-            "color": ""
+            "color": "red"
           }
         }
       }
