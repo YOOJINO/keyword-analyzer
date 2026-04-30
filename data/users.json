@@ -1,0 +1,10 @@
+{
+  "users": [
+    {
+      "id": "1",
+      "passwordHash": "5d8966b2db4b60231c19161385e755d5:806e181c8b7a27fab4a1ad86603a8034970ff53f2ae5edc7d345ef342fc361198c650ed56d3468689a4351b23d08a3516eeea5656b0b33319f8a545eb0bcb0c6",
+      "role": "admin",
+      "createdAt": "2026-04-30T16:20:05.422Z"
+    }
+  ]
+}
