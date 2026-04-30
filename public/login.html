@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>로그인 — 바이럴 마케팅 연구소</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --blue:#1a6dff;--blue-light:#e8f0ff;--blue-mid:#4d8eff;
+  --red:#ff4d4f;--red-light:#fff1f0;
+  --gray-1:#f8f9fc;--gray-2:#f0f2f7;--gray-3:#e2e6ef;
+  --gray-4:#bcc4d4;--gray-5:#8a96ab;--gray-6:#5a6478;--gray-7:#2d3547;
+  --white:#fff;
+  --shadow:0 4px 24px rgba(0,0,0,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans KR',sans-serif;background:linear-gradient(135deg,#f0f4ff,#e8f0ff);color:var(--gray-7);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+.box{background:var(--white);border-radius:16px;padding:40px 36px;width:100%;max-width:380px;box-shadow:var(--shadow);}
+.logo{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:8px;}
+.logo-box{width:36px;height:36px;background:var(--blue);border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;font-weight:700;}
+.logo-text{font-size:18px;font-weight:700;color:var(--blue);}
+.subtitle{text-align:center;font-size:13px;color:var(--gray-5);margin-bottom:28px;}
+.field{margin-bottom:14px;}
+.label{display:block;font-size:12px;font-weight:600;color:var(--gray-6);margin-bottom:6px;}
+.input{width:100%;border:1.5px solid var(--gray-3);border-radius:8px;padding:12px 14px;font-size:14px;font-family:inherit;color:var(--gray-7);background:var(--white);transition:border .15s;}
+.input:focus{outline:none;border-color:var(--blue);}
+.btn{width:100%;background:var(--blue);color:#fff;border:none;border-radius:8px;padding:13px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px;transition:all .15s;}
+.btn:hover{background:var(--blue-mid);box-shadow:0 4px 12px rgba(26,109,255,.3);}
+.btn:disabled{background:var(--gray-4);cursor:not-allowed;box-shadow:none;}
+.error{background:var(--red-light);border:1px solid var(--red);color:var(--red);padding:10px 12px;border-radius:8px;font-size:13px;margin-bottom:14px;display:none;}
+</style>
+</head>
+<body>
+
+<div class="box">
+  <div class="logo">
+    <div class="logo-box">V</div>
+    <div class="logo-text">바이럴 마케팅 연구소</div>
+  </div>
+  <div class="subtitle">로그인이 필요합니다</div>
+
+  <div class="error" id="errorBox"></div>
+
+  <form id="loginForm" onsubmit="doLogin(event)">
+    <div class="field">
+      <label class="label">아이디</label>
+      <input type="text" class="input" id="userId" autocomplete="username" required>
+    </div>
+    <div class="field">
+      <label class="label">비밀번호</label>
+      <input type="password" class="input" id="userPw" autocomplete="current-password" required>
+    </div>
+    <button type="submit" class="btn" id="loginBtn">로그인</button>
+  </form>
+</div>
+
+<script>
+function showError(msg) {
+  const box = document.getElementById('errorBox');
+  box.textContent = msg;
+  box.style.display = 'block';
+}
+
+async function doLogin(e) {
+  e.preventDefault();
+  const id = document.getElementById('userId').value.trim();
+  const password = document.getElementById('userPw').value;
+  const btn = document.getElementById('loginBtn');
+  document.getElementById('errorBox').style.display = 'none';
+  btn.disabled = true; btn.textContent = '로그인 중...';
+
+  try {
+    const resp = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, password }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || '로그인 실패');
+    location.href = '/';
+  } catch (err) {
+    showError(err.message);
+    btn.disabled = false; btn.textContent = '로그인';
+  }
+}
+</script>
+</body>
+</html>
