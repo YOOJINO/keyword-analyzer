@@ -758,7 +758,6 @@ function renderTable(results) {
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
         <button class="action-btn" onclick="toggleViewOptions()">⊞ 보기옵션</button>
-        <button class="action-btn" onclick="downloadCSV()">⬇ CSV 저장</button>
       </div>
     </div>
     <div class="view-options" id="viewOptions" style="display:${viewOptionsOpen ? 'block' : 'none'};">
@@ -829,18 +828,6 @@ function resetViewOptions() {
   });
 }
 
-function downloadCSV() {
-  if (!lastResults.length) return;
-  const sorted = sortData(lastResults, sortCol, sortAsc);
-  const header = ['순위','키워드','카테고리','월간검색량','PC검색수','모바일검색수','PC비율(%)','경쟁강도'];
-  const rows = sorted.map((r, i) => [i+1, r.keyword, getKwCategory(r.keyword),
-    r.totalSearch, r.monthlyPcQcCnt, r.monthlyMobileQcCnt, r.pcRatio, r.compIdx]);
-  const csv = '\uFEFF' + [header, ...rows].map(r => r.join(',')).join('\n');
-  const a = document.createElement('a');
-  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
-  a.download = `바이럴마케팅연구소_${getCatLabel()}.csv`;
-  a.click();
-}
 
 // 초기화
 onCat2Change();
