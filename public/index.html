@@ -78,6 +78,23 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--gray-1);color:var(--
 .card-body{padding:18px 20px;}
 
 /* 경쟁사 분석 */
+.comp-tabs-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--gray-2);}
+.comp-tab{display:flex;align-items:center;gap:6px;padding:8px 14px;border:1.5px solid var(--gray-3);border-radius:8px;background:var(--white);font-size:13px;font-weight:500;color:var(--gray-6);cursor:pointer;transition:all .15s;}
+.comp-tab:hover{border-color:var(--blue);color:var(--blue);}
+.comp-tab.active{background:var(--blue);border-color:var(--blue);color:#fff;}
+.comp-tab-name{font-family:inherit;}
+.comp-tab-name-input{border:none;background:rgba(255,255,255,.2);color:#fff;font-size:13px;font-weight:500;font-family:inherit;padding:0 4px;border-radius:4px;outline:none;width:140px;}
+.comp-tab-icon{background:none;border:none;color:inherit;cursor:pointer;font-size:13px;padding:2px 4px;border-radius:4px;font-family:inherit;line-height:1;opacity:.85;}
+.comp-tab-icon:hover{opacity:1;background:rgba(255,255,255,.2);}
+.comp-tab.active .comp-tab-icon:hover{background:rgba(0,0,0,.15);}
+.comp-tab-add{padding:8px 14px;border:1.5px dashed var(--gray-3);border-radius:8px;background:var(--white);font-size:13px;font-weight:500;color:var(--gray-5);cursor:pointer;font-family:inherit;transition:all .15s;}
+.comp-tab-add:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-light);}
+.comp-confirm{padding:10px 14px;background:var(--red-light);border:1px solid var(--red);border-radius:8px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.comp-confirm-msg{font-size:13px;color:var(--red);font-weight:500;}
+.comp-confirm-actions{display:flex;gap:8px;}
+.comp-confirm-btn{padding:6px 14px;border:1.5px solid var(--gray-3);border-radius:6px;background:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;}
+.comp-confirm-btn.danger{background:var(--red);color:#fff;border-color:var(--red);}
+.comp-confirm-btn.danger:hover{background:#e63946;border-color:#e63946;}
 .comp-toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;}
 .comp-year-wrap{display:flex;align-items:center;gap:10px;}
 .comp-year{font-size:18px;font-weight:700;color:var(--gray-7);background:var(--blue-light);color:var(--blue);padding:4px 14px;border-radius:8px;}
@@ -409,7 +426,9 @@ td{padding:11px 14px;font-size:13px;color:var(--gray-7);}
 
   <!-- 경쟁사 분석 뷰 -->
   <div id="viewCompetitor" style="display:none;">
-    <div class="card"><div class="card-body">
+    <div class="card"><div class="card-body" style="padding:14px 18px;">
+      <div class="comp-tabs-row" id="compTabsRow"></div>
+      <div class="comp-confirm" id="compConfirm" style="display:none;"></div>
       <div class="comp-toolbar">
         <div class="comp-year-wrap">
           <span style="font-size:13px;color:var(--gray-6);font-weight:500;">연도</span>
@@ -738,32 +757,149 @@ function switchView(name, navEl) {
 }
 
 // =============================================
-// 경쟁사 분석
+// 경쟁사 분석 (멀티 프로젝트)
 // =============================================
-let _compData = null;
-let _compYear = new Date().getFullYear();
+let _compState = null; // { projects: [...], activeProjectId }
+
+function activeProject() {
+  if (!_compState) return null;
+  return _compState.projects.find(p => p.id === _compState.activeProjectId) || _compState.projects[0] || null;
+}
 
 async function loadCompetitorData() {
-  document.getElementById('compYear').textContent = _compYear;
   const area = document.getElementById('compGridArea');
   area.innerHTML = '<div class="comp-empty">로딩 중...</div>';
   try {
-    const resp = await fetch(`/api/competitor?year=${_compYear}`);
+    const resp = await fetch('/api/competitor');
     if (!resp.ok) {
       const err = await resp.json();
       throw new Error(err.error || '로드 실패');
     }
-    _compData = await resp.json();
+    _compState = await resp.json();
+    renderProjectTabs();
     renderCompetitorGrid();
   } catch (err) {
     area.innerHTML = `<div class="comp-empty" style="color:var(--red);">${err.message}</div>`;
   }
 }
 
+function renderProjectTabs() {
+  const tabsRow = document.getElementById('compTabsRow');
+  if (!_compState) return tabsRow.innerHTML = '';
+  const tabs = _compState.projects.map(p => {
+    const isActive = p.id === _compState.activeProjectId;
+    const canDelete = _compState.projects.length > 1;
+    return `
+      <div class="comp-tab ${isActive ? 'active' : ''}" onclick="switchProject('${p.id}')">
+        <span class="comp-tab-name" id="ptn-${p.id}">${escapeHtml(p.name)}</span>
+        ${isActive ? `
+          <button class="comp-tab-icon" onclick="event.stopPropagation();startRenameProject('${p.id}')" title="이름 변경">✏️</button>
+          ${canDelete ? `<button class="comp-tab-icon" onclick="event.stopPropagation();askDeleteProject('${p.id}')" title="삭제">×</button>` : ''}
+        ` : ''}
+      </div>`;
+  }).join('');
+  tabsRow.innerHTML = tabs + `<button class="comp-tab-add" onclick="addProject()">+ 새 프로젝트</button>`;
+}
+
+function switchProject(projectId) {
+  if (!_compState) return;
+  if (_compState.activeProjectId === projectId) return;
+  _compState.activeProjectId = projectId;
+  document.getElementById('compConfirm').style.display = 'none';
+  renderProjectTabs();
+  renderCompetitorGrid();
+  saveCompetitor();
+}
+
+async function addProject() {
+  if (!_compState) return;
+  const id = 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  const year = new Date().getFullYear();
+  const months = {};
+  for (let m = 1; m <= 12; m++) months[`${year}-${String(m).padStart(2, '0')}`] = {};
+  const newProject = {
+    id,
+    name: `프로젝트 ${_compState.projects.length + 1}`,
+    year,
+    keywords: [],
+    data: months,
+  };
+  _compState.projects.push(newProject);
+  _compState.activeProjectId = id;
+  renderProjectTabs();
+  renderCompetitorGrid();
+  await saveCompetitor();
+}
+
+function startRenameProject(projectId) {
+  const proj = _compState.projects.find(p => p.id === projectId);
+  if (!proj) return;
+  const span = document.getElementById(`ptn-${projectId}`);
+  if (!span) return;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'comp-tab-name-input';
+  input.value = proj.name;
+  input.maxLength = 40;
+  input.addEventListener('click', e => e.stopPropagation());
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); commitRename(projectId, input.value); }
+    else if (e.key === 'Escape') { renderProjectTabs(); }
+  });
+  input.addEventListener('blur', () => commitRename(projectId, input.value));
+  span.replaceWith(input);
+  input.focus();
+  input.select();
+}
+
+async function commitRename(projectId, newName) {
+  const proj = _compState.projects.find(p => p.id === projectId);
+  if (!proj) return;
+  const trimmed = String(newName || '').trim();
+  if (!trimmed || trimmed === proj.name) {
+    renderProjectTabs();
+    return;
+  }
+  proj.name = trimmed.slice(0, 40);
+  renderProjectTabs();
+  await saveCompetitor();
+}
+
+function askDeleteProject(projectId) {
+  const proj = _compState.projects.find(p => p.id === projectId);
+  if (!proj) return;
+  const confirm = document.getElementById('compConfirm');
+  confirm.innerHTML = `
+    <span class="comp-confirm-msg">프로젝트 "${escapeHtml(proj.name)}" 을(를) 삭제하시겠습니까? (모든 키워드와 데이터가 함께 삭제됩니다)</span>
+    <div class="comp-confirm-actions">
+      <button class="comp-confirm-btn" onclick="document.getElementById('compConfirm').style.display='none'">취소</button>
+      <button class="comp-confirm-btn danger" onclick="doDeleteProject('${projectId}')">삭제</button>
+    </div>`;
+  confirm.style.display = 'flex';
+}
+
+async function doDeleteProject(projectId) {
+  if (!_compState) return;
+  _compState.projects = _compState.projects.filter(p => p.id !== projectId);
+  if (_compState.projects.length === 0) {
+    // 프로젝트가 모두 사라지면 빈 기본 프로젝트 자동 생성
+    return addProject();
+  }
+  if (_compState.activeProjectId === projectId) {
+    _compState.activeProjectId = _compState.projects[0].id;
+  }
+  document.getElementById('compConfirm').style.display = 'none';
+  renderProjectTabs();
+  renderCompetitorGrid();
+  await saveCompetitor();
+}
+
 function renderCompetitorGrid() {
   const area = document.getElementById('compGridArea');
-  if (!_compData) return;
-  const { keywords, data, year } = _compData;
+  const proj = activeProject();
+  if (!proj) return area.innerHTML = '';
+  document.getElementById('compYear').textContent = proj.year;
+  const { keywords, data, year } = proj;
   const today = new Date();
   const curY = today.getFullYear();
   const curM = today.getMonth() + 1;
@@ -821,38 +957,40 @@ async function addCompKeyword() {
   const input = document.getElementById('compNewKw');
   const kw = input.value.trim();
   if (!kw) return;
-  if (!_compData) await loadCompetitorData();
-  if (_compData.keywords.includes(kw)) {
+  const proj = activeProject();
+  if (!proj) { alert('프로젝트가 없습니다.'); return; }
+  if (proj.keywords.includes(kw)) {
     alert('이미 등록된 키워드입니다.');
     return;
   }
-  _compData.keywords.push(kw);
+  proj.keywords.push(kw);
   input.value = '';
   renderCompetitorGrid();
   await saveCompetitor();
 }
 
 async function removeCompKeyword(kw) {
-  if (!_compData) return;
+  const proj = activeProject();
+  if (!proj) return;
   if (!confirm(`키워드 "${kw}"을(를) 삭제하시겠습니까?\n해당 키워드의 모든 월별 데이터도 함께 삭제됩니다.`)) return;
-  _compData.keywords = _compData.keywords.filter(k => k !== kw);
+  proj.keywords = proj.keywords.filter(k => k !== kw);
   renderCompetitorGrid();
   await saveCompetitor();
 }
 
 async function saveCompetitor() {
-  if (!_compData) return;
+  if (!_compState) return;
   try {
-    const resp = await fetch(`/api/competitor?year=${_compData.year}`, {
+    const resp = await fetch('/api/competitor', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ keywords: _compData.keywords, data: _compData.data }),
+      body: JSON.stringify({ projects: _compState.projects, activeProjectId: _compState.activeProjectId }),
     });
     if (!resp.ok) {
       const err = await resp.json();
       throw new Error(err.error || '저장 실패');
     }
-    _compData = await resp.json();
+    _compState = await resp.json();
   } catch (err) {
     alert('저장 실패: ' + err.message);
   }
