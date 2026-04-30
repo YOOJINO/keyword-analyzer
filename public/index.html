@@ -77,6 +77,29 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--gray-1);color:var(--
 .card{background:var(--white);border:1px solid var(--gray-3);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:14px;}
 .card-body{padding:18px 20px;}
 
+/* 경쟁사 분석 */
+.comp-toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;}
+.comp-year-wrap{display:flex;align-items:center;gap:10px;}
+.comp-year{font-size:18px;font-weight:700;color:var(--gray-7);background:var(--blue-light);color:var(--blue);padding:4px 14px;border-radius:8px;}
+.comp-add{display:flex;gap:8px;align-items:center;flex:1;max-width:480px;}
+.comp-input{flex:1;border:1.5px solid var(--gray-3);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;color:var(--gray-7);background:var(--white);}
+.comp-input:focus{outline:none;border-color:var(--blue);}
+.comp-add-btn{background:var(--blue);color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;}
+.comp-add-btn:hover{background:var(--blue-mid);}
+.comp-grid{width:100%;border-collapse:collapse;min-width:600px;}
+.comp-grid th,.comp-grid td{border:1px solid var(--gray-2);padding:10px 14px;font-size:13px;text-align:center;}
+.comp-grid thead th{background:var(--gray-2);font-weight:600;color:var(--gray-6);position:sticky;top:0;}
+.comp-grid thead th:first-child{background:var(--gray-3);color:var(--gray-7);width:110px;}
+.comp-grid tbody td:first-child{background:var(--gray-1);font-weight:600;color:var(--gray-7);width:110px;}
+.comp-grid tbody td{color:var(--gray-7);}
+.comp-grid tbody td.empty{color:var(--gray-4);}
+.comp-grid tbody tr.future td{color:var(--gray-3);background:var(--gray-1);}
+.comp-kw-cell{display:flex;align-items:center;justify-content:center;gap:6px;}
+.comp-kw-name{font-weight:600;color:var(--gray-7);}
+.comp-kw-del{background:none;border:none;color:var(--gray-4);cursor:pointer;font-size:14px;padding:0 4px;font-family:inherit;border-radius:50%;line-height:1;}
+.comp-kw-del:hover{color:var(--red);background:var(--red-light);}
+.comp-empty{text-align:center;padding:60px 20px;color:var(--gray-5);font-size:13px;}
+
 /* 키워드 검색 입력 */
 .kw-search-row{display:flex;gap:10px;align-items:center;}
 .kw-input{flex:1;border:1.5px solid var(--gray-3);border-radius:8px;padding:11px 14px;font-size:14px;font-family:inherit;color:var(--gray-7);background:var(--white);}
@@ -386,8 +409,22 @@ td{padding:11px 14px;font-size:13px;color:var(--gray-7);}
 
   <!-- 경쟁사 분석 뷰 -->
   <div id="viewCompetitor" style="display:none;">
-    <div class="card"><div class="card-body" style="text-align:center;padding:60px 20px;color:var(--gray-5);">
-      경쟁사 분석 기능은 준비 중입니다.
+    <div class="card"><div class="card-body">
+      <div class="comp-toolbar">
+        <div class="comp-year-wrap">
+          <span style="font-size:13px;color:var(--gray-6);font-weight:500;">연도</span>
+          <span class="comp-year" id="compYear">2026</span>
+        </div>
+        <div class="comp-add">
+          <input type="text" class="comp-input" id="compNewKw" placeholder="키워드 입력 후 Enter" onkeydown="if(event.key==='Enter')addCompKeyword()">
+          <button class="comp-add-btn" onclick="addCompKeyword()">+ 키워드 추가</button>
+        </div>
+      </div>
+    </div></div>
+    <div class="card"><div class="card-body" style="padding:0;overflow:auto;">
+      <div id="compGridArea">
+        <div style="text-align:center;padding:60px 20px;color:var(--gray-5);font-size:13px;">로딩 중...</div>
+      </div>
     </div></div>
   </div>
 
@@ -687,12 +724,145 @@ function switchView(name, navEl) {
   });
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   navEl.classList.add('active');
-  document.getElementById('resultArea').innerHTML = `
-    <div class="empty-wrap">
-      <div class="empty-icon">📊</div>
-      <div class="empty-text">${name === 'Keyword' ? '키워드를 입력하고 조회 버튼을 눌러주세요' : '카테고리를 선택하고 조회 버튼을 눌러주세요'}</div>
-    </div>`;
+  if (name === 'Competitor') {
+    document.getElementById('resultArea').innerHTML = '';
+    loadCompetitorData();
+  } else {
+    document.getElementById('resultArea').innerHTML = `
+      <div class="empty-wrap">
+        <div class="empty-icon">📊</div>
+        <div class="empty-text">${name === 'Keyword' ? '키워드를 입력하고 조회 버튼을 눌러주세요' : '카테고리를 선택하고 조회 버튼을 눌러주세요'}</div>
+      </div>`;
+  }
   hideError();
+}
+
+// =============================================
+// 경쟁사 분석
+// =============================================
+let _compData = null;
+let _compYear = new Date().getFullYear();
+
+async function loadCompetitorData() {
+  document.getElementById('compYear').textContent = _compYear;
+  const area = document.getElementById('compGridArea');
+  area.innerHTML = '<div class="comp-empty">로딩 중...</div>';
+  try {
+    const resp = await fetch(`/api/competitor?year=${_compYear}`);
+    if (!resp.ok) {
+      const err = await resp.json();
+      throw new Error(err.error || '로드 실패');
+    }
+    _compData = await resp.json();
+    renderCompetitorGrid();
+  } catch (err) {
+    area.innerHTML = `<div class="comp-empty" style="color:var(--red);">${err.message}</div>`;
+  }
+}
+
+function renderCompetitorGrid() {
+  const area = document.getElementById('compGridArea');
+  if (!_compData) return;
+  const { keywords, data, year } = _compData;
+  const today = new Date();
+  const curY = today.getFullYear();
+  const curM = today.getMonth() + 1;
+
+  const months = [];
+  for (let m = 1; m <= 12; m++) {
+    months.push({
+      key: `${year}-${String(m).padStart(2, '0')}`,
+      label: `${year}-${String(m).padStart(2, '0')}`,
+      future: (year > curY) || (year === curY && m > curM),
+    });
+  }
+
+  if (!keywords.length) {
+    area.innerHTML = `
+      <div class="comp-empty">
+        등록된 키워드가 없습니다.<br>
+        위 입력창에 키워드를 입력하고 추가해주세요.
+      </div>`;
+    return;
+  }
+
+  const headerCols = keywords.map(kw => `
+    <th>
+      <div class="comp-kw-cell">
+        <span class="comp-kw-name">${escapeHtml(kw)}</span>
+        <button class="comp-kw-del" onclick="removeCompKeyword('${escapeAttr(kw)}')" title="삭제">×</button>
+      </div>
+    </th>
+  `).join('');
+
+  const rows = months.map(m => {
+    const cells = keywords.map(kw => {
+      const v = data[m.key]?.[kw];
+      if (v === null || v === undefined) return `<td class="empty">-</td>`;
+      return `<td>${Number(v).toLocaleString()}</td>`;
+    }).join('');
+    return `<tr class="${m.future ? 'future' : ''}"><td>${m.label}</td>${cells}</tr>`;
+  }).join('');
+
+  area.innerHTML = `
+    <table class="comp-grid">
+      <thead>
+        <tr>
+          <th>날짜</th>
+          ${headerCols}
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+async function addCompKeyword() {
+  const input = document.getElementById('compNewKw');
+  const kw = input.value.trim();
+  if (!kw) return;
+  if (!_compData) await loadCompetitorData();
+  if (_compData.keywords.includes(kw)) {
+    alert('이미 등록된 키워드입니다.');
+    return;
+  }
+  _compData.keywords.push(kw);
+  input.value = '';
+  renderCompetitorGrid();
+  await saveCompetitor();
+}
+
+async function removeCompKeyword(kw) {
+  if (!_compData) return;
+  if (!confirm(`키워드 "${kw}"을(를) 삭제하시겠습니까?\n해당 키워드의 모든 월별 데이터도 함께 삭제됩니다.`)) return;
+  _compData.keywords = _compData.keywords.filter(k => k !== kw);
+  renderCompetitorGrid();
+  await saveCompetitor();
+}
+
+async function saveCompetitor() {
+  if (!_compData) return;
+  try {
+    const resp = await fetch(`/api/competitor?year=${_compData.year}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ keywords: _compData.keywords, data: _compData.data }),
+    });
+    if (!resp.ok) {
+      const err = await resp.json();
+      throw new Error(err.error || '저장 실패');
+    }
+    _compData = await resp.json();
+  } catch (err) {
+    alert('저장 실패: ' + err.message);
+  }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(s) {
+  return String(s).replace(/['\\]/g, '\\$&');
 }
 
 // =============================================
