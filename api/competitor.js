@@ -43,6 +43,7 @@ export default async function handler(req, res) {
           keywords,
           data,
           lastQueryDate: p.lastQueryDate || null,
+          thresholds: p.thresholds && typeof p.thresholds === 'object' ? p.thresholds : null,
         };
       });
       const activeProjectId = body.activeProjectId && cleaned.find(p => p.id === body.activeProjectId)
