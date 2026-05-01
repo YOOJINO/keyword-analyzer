@@ -84,7 +84,7 @@ export default async function handler(req, res) {
     }));
 
     keywords_result.sort((a, b) => b.totalSearch - a.totalSearch);
-    return res.status(200).json({ keywords: keywords_result.slice(0, 500) });
+    return res.status(200).json({ keywords: keywords_result });
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
