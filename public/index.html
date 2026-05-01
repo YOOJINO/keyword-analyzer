@@ -402,8 +402,8 @@ td{padding:11px 14px;font-size:13px;color:var(--gray-7);}
     바이럴 마케팅 연구소
   </div>
   <div class="nav">
-    <div class="nav-item active" onclick="switchView('Category', this)">카테고리 조회</div>
     <div class="nav-item" onclick="switchView('Keyword', this)">키워드 조회</div>
+    <div class="nav-item active" onclick="switchView('Category', this)">카테고리 조회</div>
     <div class="nav-item" onclick="switchView('Competitor', this)">경쟁사 분석</div>
   </div>
   <div class="user-menu" id="userMenu" style="display:none;margin-left:auto;align-items:center;gap:10px;">
@@ -640,10 +640,6 @@ td{padding:11px 14px;font-size:13px;color:var(--gray-7);}
               <div style="text-align:center;padding:60px 20px;color:var(--gray-5);font-size:13px;">로딩 중...</div>
             </div>
           </div></div>
-          <aside class="card comp-fav-panel" id="compFavPanel" style="display:none;">
-            <div class="comp-fav-panel-title">⭐ 즐겨찾기</div>
-            <div id="compFavList"></div>
-          </aside>
         </div>
       </div>
     </div>
@@ -1197,9 +1193,8 @@ function renderThresholdsForm() {
   const container = document.getElementById('compThresholds');
   if (!container) return;
   const proj = activeProject();
-  const t = (proj && proj.thresholds) || {};
-  const m = t.month || {};
-  const d = t.daily || {};
+  const m = getEffectiveValueThresholds(proj, 'month');
+  const d = getEffectiveValueThresholds(proj, 'daily');
   const g = getGrowthThresholds(proj);
   const v = obj => (obj && obj.value != null ? obj.value : '');
   const f = obj => (obj && obj.from != null ? obj.from : '');
@@ -1249,27 +1244,27 @@ function renderThresholdsForm() {
     <div class="comp-th-section">
       <div class="comp-th-title">상승률 구간 (전월 대비)</div>
       <div class="comp-th-row">
-        <span style="color:#dc2626;font-weight:600;">🔥 폭등</span>
+        <span style="color:#dc2626;font-weight:600;">폭등</span>
         <input type="number" class="comp-th-input" data-th="growth-hot" value="${g.hot}" placeholder="50">
         <label>% 이상</label>
       </div>
       <div class="comp-th-row">
-        <span style="color:#ea580c;font-weight:600;">📈 상승</span>
+        <span style="color:#ea580c;font-weight:600;">상승</span>
         <input type="number" class="comp-th-input" data-th="growth-up" value="${g.up}" placeholder="20">
         <label>% 이상 ~ 폭등 미만</label>
       </div>
       <div class="comp-th-row">
-        <span style="color:#6b7280;font-weight:600;">➡️ 보합</span>
+        <span style="color:#6b7280;font-weight:600;">보합</span>
         <input type="number" class="comp-th-input" data-th="growth-flat" value="${g.flat}" placeholder="-10">
         <label>% 이상 ~ 상승 미만</label>
       </div>
       <div class="comp-th-row">
-        <span style="color:#2563eb;font-weight:600;">📉 하락</span>
+        <span style="color:#2563eb;font-weight:600;">하락</span>
         <input type="number" class="comp-th-input" data-th="growth-down" value="${g.down}" placeholder="-30">
         <label>% 이상 ~ 보합 미만</label>
       </div>
       <div class="comp-th-row">
-        <span style="color:#7c3aed;font-weight:600;">⬇️ 폭락</span>
+        <span style="color:#7c3aed;font-weight:600;">폭락</span>
         <label>(폭락 임계값 미만 자동 적용)</label>
       </div>
     </div>
@@ -1318,8 +1313,7 @@ function applyThresholdChange() {
 function getCellColorClass(value) {
   if (value == null || isNaN(value)) return '';
   const proj = activeProject();
-  const thresholds = proj && proj.thresholds && proj.thresholds[_compMode];
-  if (!thresholds) return '';
+  const thresholds = getEffectiveValueThresholds(proj, _compMode);
   // 우선순위: between > below > above
   const b = thresholds.between;
   if (b && b.color && b.from != null && b.to != null && value >= b.from && value <= b.to) {
@@ -1340,6 +1334,30 @@ function getCellColorClass(value) {
 // 상승률 계산
 // =============================================
 const DEFAULT_GROWTH_THRESHOLDS = { hot: 50, up: 20, flat: -10, down: -30 };
+
+// 검색량 기본 임계값 — 최근 한달 / 일일 누적 모두 동일 적용
+const DEFAULT_VALUE_THRESHOLDS = {
+  below: { value: 1000, color: 'yellow' },
+  between: { from: 1001, to: 9999, color: 'green' },
+  above: { value: 10000, color: 'red' },
+};
+
+function getEffectiveValueThresholds(proj, mode) {
+  const t = proj && proj.thresholds && proj.thresholds[mode];
+  if (!t) return DEFAULT_VALUE_THRESHOLDS;
+  // 비어있는 tier 만 디폴트로 보충 (사용자 부분 설정 존중)
+  const isEmpty = obj => !obj || (
+    (obj.value == null || obj.value === '') &&
+    (obj.from == null || obj.from === '') &&
+    (obj.to == null || obj.to === '') &&
+    !obj.color
+  );
+  return {
+    below: isEmpty(t.below) ? DEFAULT_VALUE_THRESHOLDS.below : t.below,
+    between: isEmpty(t.between) ? DEFAULT_VALUE_THRESHOLDS.between : t.between,
+    above: isEmpty(t.above) ? DEFAULT_VALUE_THRESHOLDS.above : t.above,
+  };
+}
 
 function getPreviousMonthKey(monthKey) {
   const [y, m] = monthKey.split('-').map(Number);
@@ -1774,14 +1792,11 @@ function setEditMode(on) {
   _compEditMode = !!on;
   const btn = document.getElementById('compEditBtn');
   const area = document.getElementById('compEditArea');
-  const favPanel = document.getElementById('compFavPanel');
   if (!btn || !area) return;
   btn.classList.toggle('active', _compEditMode);
   btn.textContent = _compEditMode ? '완료' : '편집';
   area.style.display = _compEditMode ? 'flex' : 'none';
-  if (favPanel) favPanel.style.display = _compEditMode ? 'block' : 'none';
   if (_compEditMode) {
-    renderFavoritesPanel();
     renderThresholdsForm();
   }
   renderCompetitorGrid();
@@ -1995,7 +2010,7 @@ function renderCompetitorGrid() {
       const rate = calcGrowthRate(kw, m.key, data);
       const gs = getGrowthStyle(rate, growthThresholds);
       const growthHtml = gs
-        ? `<div class="cell-growth ${gs.cls}" title="전월 대비 ${gs.label}">${gs.emoji} ${formatGrowthRate(rate)}</div>`
+        ? `<div class="cell-growth ${gs.cls}" title="전월 대비 ${gs.label}">${formatGrowthRate(rate)}</div>`
         : '';
       return `<td class="${colorCls.trim()}"><div class="cell-val">${Number(display).toLocaleString()}</div>${growthHtml}</td>`;
     }).join('');
@@ -2028,7 +2043,6 @@ async function addCompKeyword() {
   proj.keywords.push(kw);
   input.value = '';
   renderCompetitorGrid();
-  if (_compEditMode) renderFavoritesPanel();
   await saveCompetitor();
 }
 
@@ -2068,8 +2082,7 @@ async function uploadCompFile(event) {
       added++;
     }
     renderCompetitorGrid();
-    if (_compEditMode) renderFavoritesPanel();
-    await saveCompetitor();
+      await saveCompetitor();
     alert(`${added}개 키워드 추가됨${dup ? ` (중복 ${dup}개 무시)` : ''} (총 ${proj.keywords.length}개)`);
   } catch (e) {
     alert('파일 읽기 실패: ' + e.message);
@@ -2083,7 +2096,6 @@ async function removeCompKeyword(kw) {
   if (!confirm(`키워드 "${kw}"을(를) 삭제하시겠습니까?\n해당 키워드의 모든 월별 데이터도 함께 삭제됩니다.`)) return;
   proj.keywords = proj.keywords.filter(k => k !== kw);
   renderCompetitorGrid();
-  if (_compEditMode) renderFavoritesPanel();
   await saveCompetitor();
 }
 
@@ -2402,12 +2414,10 @@ function renderTable(results) {
     const isHigh = r.totalSearch > 10000;
     const avgClk = (r.monthlyAvePcClkCnt || 0) + (r.monthlyAveMobileClkCnt || 0);
 
-    const isFav = _favorites.has(r.keyword);
     const escKw = escapeAttr ? escapeAttr(r.keyword) : r.keyword.replace(/'/g, "\\'");
     return `<tr>
       <td><span style="color:var(--gray-5);font-weight:600;margin-right:4px;">${rank}</span>${medal(rank)}</td>
       <td>
-        <button class="kw-star${isFav ? ' on' : ''}" onclick="toggleFavorite('${escKw}', this)" title="즐겨찾기">${isFav ? '★' : '☆'}</button>
         <button class="kw-exclude" onclick="quickExclude('${escKw}')" title="제외 키워드로 추가">🚫</button>
         <strong>${r.keyword}</strong>
       </td>
