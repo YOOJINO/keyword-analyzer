@@ -206,6 +206,15 @@ body.view-competitor #viewKeyword{display:none !important;}
 .cell-bg-indigo{background:#e0e7ff !important;}
 .cell-bg-purple{background:#f3e8ff !important;}
 
+/* 셀 값/상승률 표시 */
+.cell-val{font-weight:500;line-height:1.2;}
+.cell-growth{margin-top:2px;font-size:10.5px;font-weight:600;line-height:1.1;letter-spacing:-0.1px;}
+.growth-hot{color:#dc2626;}
+.growth-up{color:#ea580c;}
+.growth-flat{color:#6b7280;}
+.growth-down{color:#2563eb;}
+.growth-crash{color:#7c3aed;}
+
 /* 삭제 확인 */
 .comp-confirm{padding:10px 12px;background:var(--red-light);border:1px solid var(--red);border-radius:6px;}
 .comp-confirm-msg{font-size:12px;color:var(--red);font-weight:500;display:block;margin-bottom:8px;}
@@ -577,8 +586,12 @@ td{padding:11px 14px;font-size:13px;color:var(--gray-7);}
         <div class="comp-create-form" id="compCreateForm" style="display:none;">
           <div class="comp-create-title">새 프로젝트</div>
           <div class="comp-create-row">
-            <label>연도</label>
-            <input type="number" class="comp-create-input" id="compNewYear" min="2020" max="2100">
+            <label>시작</label>
+            <input type="month" class="comp-create-input" id="compNewStart">
+          </div>
+          <div class="comp-create-row">
+            <label>종료</label>
+            <input type="month" class="comp-create-input" id="compNewEnd">
           </div>
           <div class="comp-create-row">
             <label>이름</label>
@@ -588,6 +601,9 @@ td{padding:11px 14px;font-size:13px;color:var(--gray-7);}
             <button class="comp-create-btn" onclick="cancelAddProject()">취소</button>
             <button class="comp-create-btn primary" onclick="confirmAddProject()">만들기</button>
           </div>
+        </div>
+        <div style="margin-top:8px;">
+          <button class="comp-add-project-btn" style="background:#fee2e2;color:#dc2626;" onclick="confirmDeleteAllProjects()">전체 삭제</button>
         </div>
         <div class="comp-confirm" id="compConfirm" style="display:none;margin-top:10px;"></div>
       </aside>
@@ -882,25 +898,28 @@ let excludeKeywords = [];
 async function fetchExcludeKeywords() {
   try {
     const resp = await fetch('/api/excludes');
-    if (!resp.ok) return;
-    const data = await resp.json();
-    excludeKeywords = Array.isArray(data.excludes) ? data.excludes : [];
+    if (resp.ok) {
+      const data = await resp.json();
+      excludeKeywords = Array.isArray(data.excludes) ? data.excludes : [];
 
-    // 마이그레이션: localStorage 잔존 데이터를 한 번만 DB로 이전
-    let legacy = [];
-    try { legacy = JSON.parse(localStorage.getItem('vml_excludeKeywords') || '[]'); } catch {}
-    if (legacy.length) {
-      if (!excludeKeywords.length) {
-        excludeKeywords = legacy;
-        await fetch('/api/excludes', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ excludes: legacy }),
-        });
+      // 마이그레이션: localStorage 잔존 데이터를 한 번만 DB로 이전
+      let legacy = [];
+      try { legacy = JSON.parse(localStorage.getItem('vml_excludeKeywords') || '[]'); } catch {}
+      if (legacy.length) {
+        if (!excludeKeywords.length) {
+          excludeKeywords = legacy;
+          await fetch('/api/excludes', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ excludes: legacy }),
+          });
+        }
+        localStorage.removeItem('vml_excludeKeywords');
       }
-      localStorage.removeItem('vml_excludeKeywords');
     }
   } catch { /* ignore */ }
+  // fetch 결과(성공/실패 무관)를 무조건 UI 에 반영
+  try { renderExcludeList(); } catch {}
 }
 async function saveExcludeKeywords(list) {
   excludeKeywords = list;
@@ -1181,6 +1200,7 @@ function renderThresholdsForm() {
   const t = (proj && proj.thresholds) || {};
   const m = t.month || {};
   const d = t.daily || {};
+  const g = getGrowthThresholds(proj);
   const v = obj => (obj && obj.value != null ? obj.value : '');
   const f = obj => (obj && obj.from != null ? obj.from : '');
   const tt = obj => (obj && obj.to != null ? obj.to : '');
@@ -1226,6 +1246,33 @@ function renderThresholdsForm() {
         <select class="comp-th-color" data-th="daily-above-color">${colorOpts(c(d.above))}</select>
       </div>
     </div>
+    <div class="comp-th-section">
+      <div class="comp-th-title">상승률 구간 (전월 대비)</div>
+      <div class="comp-th-row">
+        <span style="color:#dc2626;font-weight:600;">🔥 폭등</span>
+        <input type="number" class="comp-th-input" data-th="growth-hot" value="${g.hot}" placeholder="50">
+        <label>% 이상</label>
+      </div>
+      <div class="comp-th-row">
+        <span style="color:#ea580c;font-weight:600;">📈 상승</span>
+        <input type="number" class="comp-th-input" data-th="growth-up" value="${g.up}" placeholder="20">
+        <label>% 이상 ~ 폭등 미만</label>
+      </div>
+      <div class="comp-th-row">
+        <span style="color:#6b7280;font-weight:600;">➡️ 보합</span>
+        <input type="number" class="comp-th-input" data-th="growth-flat" value="${g.flat}" placeholder="-10">
+        <label>% 이상 ~ 상승 미만</label>
+      </div>
+      <div class="comp-th-row">
+        <span style="color:#2563eb;font-weight:600;">📉 하락</span>
+        <input type="number" class="comp-th-input" data-th="growth-down" value="${g.down}" placeholder="-30">
+        <label>% 이상 ~ 보합 미만</label>
+      </div>
+      <div class="comp-th-row">
+        <span style="color:#7c3aed;font-weight:600;">⬇️ 폭락</span>
+        <label>(폭락 임계값 미만 자동 적용)</label>
+      </div>
+    </div>
   `;
   container.querySelectorAll('[data-th]').forEach(el => {
     el.addEventListener('change', applyThresholdChange);
@@ -1242,6 +1289,10 @@ function applyThresholdChange() {
     return v === '' || isNaN(n) ? null : n;
   };
   const str = sel => get(sel).value || '';
+  const numOr = (sel, fallback) => {
+    const v = num(sel);
+    return v == null ? fallback : v;
+  };
   proj.thresholds = {
     month: {
       below: { value: num('month-below-value'), color: str('month-below-color') },
@@ -1252,6 +1303,12 @@ function applyThresholdChange() {
       below: { value: num('daily-below-value'), color: str('daily-below-color') },
       between: { from: num('daily-between-from'), to: num('daily-between-to'), color: str('daily-between-color') },
       above: { value: num('daily-above-value'), color: str('daily-above-color') },
+    },
+    growth: {
+      hot: numOr('growth-hot', DEFAULT_GROWTH_THRESHOLDS.hot),
+      up: numOr('growth-up', DEFAULT_GROWTH_THRESHOLDS.up),
+      flat: numOr('growth-flat', DEFAULT_GROWTH_THRESHOLDS.flat),
+      down: numOr('growth-down', DEFAULT_GROWTH_THRESHOLDS.down),
     },
   };
   renderCompetitorGrid();
@@ -1277,6 +1334,69 @@ function getCellColorClass(value) {
     return ' cell-bg-' + hi.color;
   }
   return '';
+}
+
+// =============================================
+// 상승률 계산
+// =============================================
+const DEFAULT_GROWTH_THRESHOLDS = { hot: 50, up: 20, flat: -10, down: -30 };
+
+function getPreviousMonthKey(monthKey) {
+  const [y, m] = monthKey.split('-').map(Number);
+  const d = new Date(y, m - 2, 1); // m-2 = 전월 (0-based)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function calcGrowthRate(keyword, monthKey, projectData) {
+  const now = new Date();
+  const curY = now.getFullYear();
+  const curM = now.getMonth() + 1;
+  const todayNum = now.getDate();
+  const currentMonthKey = `${curY}-${String(curM).padStart(2, '0')}`;
+  const [y, m] = monthKey.split('-').map(Number);
+
+  // 미래월
+  if (y > curY || (y === curY && m > curM)) return null;
+
+  const prevKey = getPreviousMonthKey(monthKey);
+  const cur = projectData?.[monthKey]?.[keyword];
+  const prev = projectData?.[prevKey]?.[keyword];
+  if (cur == null || prev == null || prev === 0) return null;
+
+  // 진행 중인 월: 월말 예상치로 환산
+  let compareValue = cur;
+  if (monthKey === currentMonthKey && todayNum > 0) {
+    const dailyCumul = cur / 30 * todayNum;
+    compareValue = dailyCumul / todayNum * 30; // = cur (수학적으로 동일하지만 사양대로 표기)
+  }
+  const rate = ((compareValue - prev) / prev) * 100;
+  return Math.round(rate * 10) / 10;
+}
+
+function getGrowthThresholds(proj) {
+  const t = proj && proj.thresholds && proj.thresholds.growth;
+  return {
+    hot: (t && Number.isFinite(t.hot)) ? t.hot : DEFAULT_GROWTH_THRESHOLDS.hot,
+    up: (t && Number.isFinite(t.up)) ? t.up : DEFAULT_GROWTH_THRESHOLDS.up,
+    flat: (t && Number.isFinite(t.flat)) ? t.flat : DEFAULT_GROWTH_THRESHOLDS.flat,
+    down: (t && Number.isFinite(t.down)) ? t.down : DEFAULT_GROWTH_THRESHOLDS.down,
+  };
+}
+
+function getGrowthStyle(rate, thresholds) {
+  if (rate == null || isNaN(rate)) return null;
+  const t = thresholds || DEFAULT_GROWTH_THRESHOLDS;
+  if (rate >= t.hot)   return { emoji: '🔥', cls: 'growth-hot',   label: '폭등' };
+  if (rate >= t.up)    return { emoji: '📈', cls: 'growth-up',    label: '상승' };
+  if (rate >= t.flat)  return { emoji: '➡️', cls: 'growth-flat',  label: '보합' };
+  if (rate >= t.down)  return { emoji: '📉', cls: 'growth-down',  label: '하락' };
+  return { emoji: '⬇️', cls: 'growth-crash', label: '폭락' };
+}
+
+function formatGrowthRate(rate) {
+  if (rate == null) return '';
+  const sign = rate > 0 ? '+' : '';
+  return `${sign}${rate}%`;
 }
 
 function calcDailyCumul(monthKey, monthlyValue) {
@@ -1317,15 +1437,17 @@ function renderProjectList() {
   if (!_compState) return list.innerHTML = '';
   list.innerHTML = _compState.projects.map(p => {
     const isActive = p.id === _compState.activeProjectId;
-    const canDelete = _compState.projects.length > 1;
+    const canDelete = true; // 항상 삭제 가능
+    const range = getProjectRange(p);
+    const rangeLabel = `${range.start} ~ ${range.end}`;
     return `
       <div class="comp-proj-item ${isActive ? 'active' : ''}" onclick="switchProject('${p.id}')">
         <span class="comp-proj-name" id="ptn-${p.id}">${escapeHtml(p.name)}</span>
-        <span class="comp-proj-year">${p.year}</span>
+        <span class="comp-proj-year">${rangeLabel}</span>
         ${isActive ? `
           <div class="comp-proj-actions">
             <button class="comp-proj-action" onclick="event.stopPropagation();startRenameProject('${p.id}')" title="이름 변경">✏️</button>
-            ${canDelete ? `<button class="comp-proj-action" onclick="event.stopPropagation();askDeleteProject('${p.id}')" title="삭제">×</button>` : ''}
+            <button class="comp-proj-action" onclick="event.stopPropagation();askDeleteProject('${p.id}')" title="삭제">×</button>
           </div>
         ` : ''}
       </div>`;
@@ -1483,12 +1605,14 @@ async function queryCompetitor() {
   if (!proj.keywords.length) { alert('등록된 키워드가 없습니다. 편집 버튼에서 키워드를 추가해주세요.'); return; }
   const now = new Date();
   const curY = now.getFullYear();
-  if (proj.year !== curY) {
-    alert(`프로젝트 연도(${proj.year})와 현재 연도(${curY})가 달라 조회할 수 없습니다.\n조회는 프로젝트와 같은 연도에서만 가능합니다.`);
-    return;
-  }
-  const curM = now.getMonth() + 1; // 1~12
+  const curM = now.getMonth() + 1;
   const ym = `${curY}-${String(curM).padStart(2, '0')}`;
+  const range = getProjectRange(proj);
+  const allMonths = monthsBetween(range.start, range.end);
+  // 현재월이 프로젝트 범위 밖이면 검색광고 절대값을 어디 anchor 시킬지 모호 → 경고
+  if (ym < range.start || ym > range.end) {
+    if (!confirm(`프로젝트 기간(${range.start} ~ ${range.end}) 안에 현재월(${ym})이 포함되지 않습니다.\n현재월 절대값 없이 데이터랩 비율만으로 추정합니다. 진행할까요?`)) return;
+  }
 
   const btn = document.getElementById('compQueryBtn');
   btn.disabled = true;
@@ -1517,10 +1641,15 @@ async function queryCompetitor() {
       await new Promise(r => setTimeout(r, 200));
     }
 
-    // ─── 2) 데이터랩 API: 월별 상대지수 (1월 ~ 현재월) ───
+    // ─── 2) 데이터랩 API: 프로젝트 범위 전체 월별 상대지수 ───
     btn.textContent = '조회 중... (데이터랩)';
-    const startDate = `${curY}-01-01`;
-    const endDate = `${curY}-${String(curM).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const startDate = `${range.start}-01`;
+    // endDate: 범위 종료월의 말일 (또는 오늘이 더 빠르면 오늘)
+    const [eY, eM] = range.end.split('-').map(Number);
+    const lastDayOfEnd = new Date(eY, eM, 0).getDate();
+    const endRangeDate = `${range.end}-${String(lastDayOfEnd).padStart(2, '0')}`;
+    const todayStr = `${curY}-${String(curM).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const endDate = endRangeDate < todayStr ? endRangeDate : todayStr;
     // keyword → { 'YYYY-MM': ratio, ... }
     const ratiosByKw = {};
     let datalabFailed = false;
@@ -1557,41 +1686,60 @@ async function queryCompetitor() {
       datalabError = e.message;
     }
 
-    // ─── 3) 데이터 저장: 현재월(절대값) + 과거월(추정값) ───
-    // 모든 월 키 초기화: 'YYYY-01' ~ 'YYYY-12'
-    for (let m = 1; m <= 12; m++) {
-      const key = `${curY}-${String(m).padStart(2, '0')}`;
+    // ─── 3) 데이터 저장: 현재월(절대값) + 그 외(데이터랩 비율 추정) ───
+    // 프로젝트 범위 전체 월 키 초기화
+    for (const key of allMonths) {
       if (!proj.data[key]) proj.data[key] = {};
     }
 
+    // 직전 완료월 키 (현재 월의 한 달 전)
+    const prevMonthKey = getPreviousMonthKey(ym);
+
     for (const kw of proj.keywords) {
       const cur = (kw in found) ? found[kw] : null;
-      // 현재월: 검색광고 절대값
-      proj.data[ym][kw] = cur;
+      // 현재월이 범위 안이면 검색광고 절대값 저장
+      if (cur != null && allMonths.includes(ym)) {
+        proj.data[ym][kw] = cur;
+      }
 
-      // 과거월 추정: 데이터랩 비율 사용
-      // 기준점(anchor): 직전 완료월 (curM-1) — 검색광고 롤링 30일 ≈ 직전 완료월 절대량
-      // 부분 데이터인 현재월(curM)을 기준으로 쓰면 비율이 왜곡되므로 회피
-      if (cur != null && !datalabFailed && ratiosByKw[kw] && curM >= 2) {
+      // 비교 기준점: 직전 완료월 (있으면) — 가장 정확
+      // 둘 다 안에 있으면 ratiosByKw[kw][prevMonthKey] 사용. 없으면 anchor를 다른 곳으로 잡음.
+      if (cur != null && !datalabFailed && ratiosByKw[kw]) {
         const ratios = ratiosByKw[kw];
-        const anchorKey = `${curY}-${String(curM - 1).padStart(2, '0')}`;
-        const anchorRatio = ratios[anchorKey];
+        // anchor 우선순위: prevMonthKey → ym → 범위 안 가장 최근 완료월
+        let anchorKey = prevMonthKey;
+        let anchorRatio = ratios[anchorKey];
+        if (!anchorRatio || anchorRatio <= 0) {
+          anchorKey = ym;
+          anchorRatio = ratios[anchorKey];
+        }
+        if ((!anchorRatio || anchorRatio <= 0)) {
+          // 범위 내에서 가장 큰 ratio 가진 월을 anchor 로
+          let bestKey = null, bestRatio = 0;
+          for (const k of allMonths) {
+            const r = ratios[k];
+            if (r != null && r > bestRatio) { bestRatio = r; bestKey = k; }
+          }
+          if (bestKey) { anchorKey = bestKey; anchorRatio = bestRatio; }
+        }
         if (anchorRatio && anchorRatio > 0) {
-          for (let m = 1; m <= curM - 1; m++) {
-            const key = `${curY}-${String(m).padStart(2, '0')}`;
-            const r = ratios[key];
-            if (r != null && r >= 0) {
-              proj.data[key][kw] = Math.round(cur * (r / anchorRatio));
-            } else {
-              proj.data[key][kw] = null;
+          // anchor 의 절대값 추정: prevMonthKey면 cur(=직전완료월≈롤링30일), ym 이면 cur 그대로
+          // 다른 anchor 면 cur × (anchorRatio / 가장 가까운 known absolute ratio) 가 맞지만, 단순화: cur 사용
+          const anchorAbs = cur;
+          for (const k of allMonths) {
+            if (k === ym) continue; // 현재월은 위에서 절대값 저장
+            const r = ratios[k];
+            if (r != null && r >= 0 && anchorRatio > 0) {
+              proj.data[k][kw] = Math.round(anchorAbs * (r / anchorRatio));
+            } else if (proj.data[k][kw] === undefined) {
+              proj.data[k][kw] = null;
             }
           }
         }
       }
-      // 미래월은 비워둠
-      for (let m = curM + 1; m <= 12; m++) {
-        const key = `${curY}-${String(m).padStart(2, '0')}`;
-        proj.data[key][kw] = null;
+      // 미래월 / 데이터랩 실패 시: 미래월은 null
+      for (const k of allMonths) {
+        if (k > ym && proj.data[k][kw] == null) proj.data[k][kw] = null;
       }
     }
 
@@ -1647,11 +1795,17 @@ function startAddProject() {
   document.getElementById('compAddProjectBtn').style.display = 'none';
   document.getElementById('compConfirm').style.display = 'none';
   const form = document.getElementById('compCreateForm');
-  document.getElementById('compNewYear').value = new Date().getFullYear();
+  // 기본값: 12개월치 (이번달 - 11 ~ 이번달)
+  const today = new Date();
+  const end = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  const startD = new Date(today.getFullYear(), today.getMonth() - 11, 1);
+  const start = `${startD.getFullYear()}-${String(startD.getMonth() + 1).padStart(2, '0')}`;
+  document.getElementById('compNewStart').value = start;
+  document.getElementById('compNewEnd').value = end;
   document.getElementById('compNewName').value = `프로젝트 ${(_compState?.projects?.length || 0) + 1}`;
   form.style.display = 'block';
-  document.getElementById('compNewYear').focus();
-  document.getElementById('compNewYear').select();
+  document.getElementById('compNewName').focus();
+  document.getElementById('compNewName').select();
 }
 
 function cancelAddProject() {
@@ -1662,18 +1816,65 @@ function cancelAddProject() {
 }
 
 async function confirmAddProject() {
-  const yearVal = parseInt(document.getElementById('compNewYear').value, 10);
+  const startVal = document.getElementById('compNewStart').value; // 'YYYY-MM'
+  const endVal = document.getElementById('compNewEnd').value;
   const nameVal = document.getElementById('compNewName').value.trim();
-  if (!yearVal || yearVal < 2020 || yearVal > 2100) return alert('연도는 2020~2100 사이로 입력해주세요.');
+  if (!/^\d{4}-\d{2}$/.test(startVal) || !/^\d{4}-\d{2}$/.test(endVal)) {
+    return alert('시작/종료 월을 모두 선택해주세요 (YYYY-MM).');
+  }
+  if (startVal > endVal) return alert('종료 월은 시작 월 이후여야 합니다.');
   if (!nameVal) return alert('프로젝트 이름을 입력해주세요.');
   const id = 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
   const months = {};
-  for (let m = 1; m <= 12; m++) months[`${yearVal}-${String(m).padStart(2, '0')}`] = {};
-  const newProject = { id, name: nameVal.slice(0, 40), year: yearVal, keywords: [], data: months };
+  for (const k of monthsBetween(startVal, endVal)) months[k] = {};
+  const newProject = {
+    id,
+    name: nameVal.slice(0, 40),
+    startMonth: startVal,
+    endMonth: endVal,
+    keywords: [],
+    data: months,
+  };
   _compState.projects.push(newProject);
   _compState.activeProjectId = id;
   cancelAddProject();
   setEditMode(false);
+  renderProjectList();
+  renderCompetitorGrid();
+  await saveCompetitor();
+}
+
+// 'YYYY-MM' ~ 'YYYY-MM' 범위의 월 키 배열 반환 (포함)
+function monthsBetween(startKey, endKey) {
+  const arr = [];
+  const [sy, sm] = startKey.split('-').map(Number);
+  const [ey, em] = endKey.split('-').map(Number);
+  let y = sy, mo = sm;
+  while (y < ey || (y === ey && mo <= em)) {
+    arr.push(`${y}-${String(mo).padStart(2, '0')}`);
+    mo++;
+    if (mo > 12) { mo = 1; y++; }
+    if (arr.length > 240) break; // safety: 20년 제한
+  }
+  return arr;
+}
+
+// 기존 프로젝트(year 필드만 있는 구버전) 호환
+function getProjectRange(proj) {
+  if (proj.startMonth && proj.endMonth) return { start: proj.startMonth, end: proj.endMonth };
+  if (proj.year) return { start: `${proj.year}-01`, end: `${proj.year}-12` };
+  const t = new Date();
+  const cur = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}`;
+  return { start: cur, end: cur };
+}
+
+async function confirmDeleteAllProjects() {
+  if (!_compState || !_compState.projects.length) return;
+  const cnt = _compState.projects.length;
+  if (!confirm(`모든 프로젝트(${cnt}개)를 삭제할까요?\n복구할 수 없습니다.`)) return;
+  if (!confirm('정말로 모든 프로젝트와 데이터를 영구 삭제합니다. 진행할까요?')) return;
+  _compState.projects = [];
+  _compState.activeProjectId = null;
   renderProjectList();
   renderCompetitorGrid();
   await saveCompetitor();
@@ -1748,20 +1949,16 @@ async function doDeleteProject(projectId) {
 function renderCompetitorGrid() {
   const area = document.getElementById('compGridArea');
   const proj = activeProject();
-  if (!proj) return area.innerHTML = '';
-  const { keywords, data, year } = proj;
+  if (!proj) return area.innerHTML = '<div class="comp-empty">프로젝트가 없습니다. 좌측 <strong>+ 새 프로젝트</strong>로 시작하세요.</div>';
+  const { keywords, data } = proj;
   const today = new Date();
-  const curY = today.getFullYear();
-  const curM = today.getMonth() + 1;
-
-  const months = [];
-  for (let m = 1; m <= 12; m++) {
-    months.push({
-      key: `${year}-${String(m).padStart(2, '0')}`,
-      label: `${year}-${String(m).padStart(2, '0')}`,
-      future: (year > curY) || (year === curY && m > curM),
-    });
-  }
+  const curMonthKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  const range = getProjectRange(proj);
+  const months = monthsBetween(range.start, range.end).map(key => ({
+    key,
+    label: key,
+    future: key > curMonthKey,
+  }));
 
   if (!keywords.length) {
     area.innerHTML = `
@@ -1786,6 +1983,7 @@ function renderCompetitorGrid() {
     </th>`;
   }).join('');
 
+  const growthThresholds = getGrowthThresholds(proj);
   const rows = months.map(m => {
     const cells = keywords.map(kw => {
       const v = data[m.key]?.[kw];
@@ -1793,7 +1991,13 @@ function renderCompetitorGrid() {
       const display = _compMode === 'daily' ? calcDailyCumul(m.key, v) : v;
       if (display === null || display === undefined) return `<td class="empty">-</td>`;
       const colorCls = getCellColorClass(display);
-      return `<td class="${colorCls.trim()}">${Number(display).toLocaleString()}</td>`;
+      // 상승률 계산 (전월 대비)
+      const rate = calcGrowthRate(kw, m.key, data);
+      const gs = getGrowthStyle(rate, growthThresholds);
+      const growthHtml = gs
+        ? `<div class="cell-growth ${gs.cls}" title="전월 대비 ${gs.label}">${gs.emoji} ${formatGrowthRate(rate)}</div>`
+        : '';
+      return `<td class="${colorCls.trim()}"><div class="cell-val">${Number(display).toLocaleString()}</div>${growthHtml}</td>`;
     }).join('');
     return `<tr class="${m.future ? 'future' : ''}"><td>${m.label}</td>${cells}</tr>`;
   }).join('');
@@ -2672,9 +2876,11 @@ async function addUser(e) {
 // 초기화 — 인증 통과 시에만 카테고리 init
 checkAuth().then(async ok => {
   if (!ok) return;
-  await loadFavoritesData();
+  // 제외 키워드 먼저 로드 → 카운트가 가장 빨리 정확해짐
   await fetchExcludeKeywords();
+  await loadFavoritesData();
   onCat2Change();
+  // 안전장치: DOM 변동 후 한 번 더 보정
   renderExcludeList();
 });
 </script>
