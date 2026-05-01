@@ -1039,19 +1039,29 @@ function getCatLabel() {
   return c2label;
 }
 
-// 카테고리 정렬 순위 (CAT_DATA 정의 순서 따라감: 건강식품 13개 → 다이어트식품 15개)
+// 카테고리 정렬 순위: cat2 → cat3(sub) → cat4 순서로 그룹핑
+// 각 cat3 안에서: 먼저 cat4 항목들(CAT_DATA 정의 순서) → 마지막에 cat4 매칭 없는 generic 항목
 const CAT_ORDER = (() => {
   const arr = [];
   for (const [cat2Key, cat2Data] of Object.entries(CAT_DATA)) {
-    for (const subLabel of Object.keys(cat2Data.sub)) {
-      arr.push(`${cat2Key}::${subLabel}`);
+    for (const [subLabel, subData] of Object.entries(cat2Data.sub)) {
+      if (Array.isArray(subData.cat4)) {
+        for (const cat4Item of subData.cat4) {
+          arr.push(`${cat2Key}::${subLabel}::${cat4Item}`);
+        }
+      }
+      arr.push(`${cat2Key}::${subLabel}::`); // cat4 매칭 없는 항목 (sub 그룹 마지막)
     }
   }
   return arr;
 })();
-function catRank(cat2Key, subLabel) {
-  const idx = CAT_ORDER.indexOf(`${cat2Key}::${subLabel || ''}`);
-  return idx === -1 ? CAT_ORDER.length : idx;
+function catRank(cat2Key, subLabel, cat4Label) {
+  const key = `${cat2Key || ''}::${subLabel || ''}::${cat4Label || ''}`;
+  const idx = CAT_ORDER.indexOf(key);
+  if (idx !== -1) return idx;
+  // cat4 매칭 실패 시 cat3 generic 위치로 폴백
+  const fallback = CAT_ORDER.indexOf(`${cat2Key || ''}::${subLabel || ''}::`);
+  return fallback !== -1 ? fallback : CAT_ORDER.length;
 }
 
 function getKwCategoryInfo(keyword) {
@@ -2137,7 +2147,7 @@ function sortData(data, col, asc) {
     const rank = (kw) => {
       if (cache.has(kw)) return cache.get(kw);
       const info = getKwCategoryInfo(kw);
-      const r = catRank(info.cat2Key, info.subLabel);
+      const r = catRank(info.cat2Key, info.subLabel, info.cat4Label);
       cache.set(kw, r);
       return r;
     };
