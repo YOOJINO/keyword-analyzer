@@ -29,7 +29,7 @@
           "between": {
             "from": 1000,
             "to": 10000,
-            "color": "blue"
+            "color": "green"
           },
           "above": {
             "value": 10001,
