@@ -33,7 +33,7 @@
           },
           "above": {
             "value": 10001,
-            "color": ""
+            "color": "blue"
           }
         },
         "daily": {
