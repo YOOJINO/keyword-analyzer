@@ -23,7 +23,7 @@
       "thresholds": {
         "month": {
           "below": {
-            "value": null,
+            "value": 1000,
             "color": "red"
           },
           "between": {
