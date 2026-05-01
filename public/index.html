@@ -1032,14 +1032,10 @@ function getSeeds() {
     Object.values(CAT_DATA.diet.sub).forEach(s => s.seeds.forEach(k => all.add(k)));
     return Array.from(all);
   }
+  if (cat4 && cat4 !== '') return [cat4];
   if (cat3 && cat3 !== '') {
     const subData = CAT_DATA[cat2]?.sub[cat3];
-    const seeds = subData?.seeds || [cat3];
-    if (cat4 && cat4 !== '') {
-      // cat4 단독으로는 카테고리 라벨이라 결과 빈약 → cat3 전체 시드와 합쳐서 풍부하게
-      return Array.from(new Set([cat4, ...seeds]));
-    }
-    return seeds;
+    return subData?.seeds || [cat3];
   }
   // cat3='전체' 일 때도 통합 모드와 동일하게 모든 시드 사용 (dedup)
   const all = new Set();
