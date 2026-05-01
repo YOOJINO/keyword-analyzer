@@ -36,15 +36,20 @@ export default async function handler(req, res) {
           }
           data[month] = cleanedMonth;
         }
-        return {
+        const out = {
           id: p.id,
           name: String(p.name || '제목 없음').slice(0, 80),
-          year: Number(p.year) || new Date().getFullYear(),
           keywords,
           data,
           lastQueryDate: p.lastQueryDate || null,
           thresholds: p.thresholds && typeof p.thresholds === 'object' ? p.thresholds : null,
         };
+        // 새 스키마: startMonth/endMonth
+        if (p.startMonth && /^\d{4}-\d{2}$/.test(p.startMonth)) out.startMonth = p.startMonth;
+        if (p.endMonth && /^\d{4}-\d{2}$/.test(p.endMonth)) out.endMonth = p.endMonth;
+        // 구버전 호환: year 만 있으면 보존
+        if (!out.startMonth && p.year) out.year = Number(p.year);
+        return out;
       });
       const activeProjectId = body.activeProjectId && cleaned.find(p => p.id === body.activeProjectId)
         ? body.activeProjectId
