@@ -1386,11 +1386,12 @@ async function queryCompetitor() {
     alert(`프로젝트 연도(${proj.year})와 현재 연도(${curY})가 달라 조회할 수 없습니다.\n조회는 프로젝트와 같은 연도에서만 가능합니다.`);
     return;
   }
-  const ym = `${curY}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const curM = now.getMonth() + 1; // 1~12
+  const ym = `${curY}-${String(curM).padStart(2, '0')}`;
 
   const btn = document.getElementById('compQueryBtn');
   btn.disabled = true;
-  btn.textContent = '조회 중...';
+  btn.textContent = '조회 중... (검색광고)';
 
   try {
     const norm = s => (s || '').replace(/\s+/g, '').toLowerCase();
@@ -1398,6 +1399,7 @@ async function queryCompetitor() {
     const found = {};
     const chunkSize = 5;
 
+    // ─── 1) 검색광고 API: 최근 30일 절대 검색량 ───
     for (let i = 0; i < proj.keywords.length; i += chunkSize) {
       const chunk = proj.keywords.slice(i, i + chunkSize);
       const resp = await fetch('/api/keywords', {
@@ -1414,14 +1416,92 @@ async function queryCompetitor() {
       await new Promise(r => setTimeout(r, 200));
     }
 
-    if (!proj.data[ym]) proj.data[ym] = {};
-    for (const kw of proj.keywords) {
-      proj.data[ym][kw] = (kw in found) ? found[kw] : null;
+    // ─── 2) 데이터랩 API: 월별 상대지수 (1월 ~ 현재월) ───
+    btn.textContent = '조회 중... (데이터랩)';
+    const startDate = `${curY}-01-01`;
+    const endDate = `${curY}-${String(curM).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    // keyword → { 'YYYY-MM': ratio, ... }
+    const ratiosByKw = {};
+    let datalabFailed = false;
+    let datalabError = '';
+
+    try {
+      for (let i = 0; i < proj.keywords.length; i += 5) {
+        const chunk = proj.keywords.slice(i, i + 5);
+        const resp = await fetch('/api/datalab', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ keywords: chunk, startDate, endDate, timeUnit: 'month' }),
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+          datalabFailed = true;
+          datalabError = data.error || '데이터랩 호출 실패';
+          break;
+        }
+        // 응답: { results: [{ title, keywords, data: [{period:'2025-01-01', ratio: 67.0}, ...] }] }
+        for (const result of (data.results || [])) {
+          const kw = result.title; // groupName 그대로
+          const map = {};
+          for (const point of (result.data || [])) {
+            const m = point.period.slice(0, 7); // 'YYYY-MM'
+            map[m] = Number(point.ratio) || 0;
+          }
+          ratiosByKw[kw] = map;
+        }
+        await new Promise(r => setTimeout(r, 250));
+      }
+    } catch (e) {
+      datalabFailed = true;
+      datalabError = e.message;
     }
+
+    // ─── 3) 데이터 저장: 현재월(절대값) + 과거월(추정값) ───
+    // 모든 월 키 초기화: 'YYYY-01' ~ 'YYYY-12'
+    for (let m = 1; m <= 12; m++) {
+      const key = `${curY}-${String(m).padStart(2, '0')}`;
+      if (!proj.data[key]) proj.data[key] = {};
+    }
+
+    for (const kw of proj.keywords) {
+      const cur = (kw in found) ? found[kw] : null;
+      // 현재월: 검색광고 절대값
+      proj.data[ym][kw] = cur;
+
+      // 과거월 추정: 데이터랩 비율 사용
+      // 기준점(anchor): 직전 완료월 (curM-1) — 검색광고 롤링 30일 ≈ 직전 완료월 절대량
+      // 부분 데이터인 현재월(curM)을 기준으로 쓰면 비율이 왜곡되므로 회피
+      if (cur != null && !datalabFailed && ratiosByKw[kw] && curM >= 2) {
+        const ratios = ratiosByKw[kw];
+        const anchorKey = `${curY}-${String(curM - 1).padStart(2, '0')}`;
+        const anchorRatio = ratios[anchorKey];
+        if (anchorRatio && anchorRatio > 0) {
+          for (let m = 1; m <= curM - 1; m++) {
+            const key = `${curY}-${String(m).padStart(2, '0')}`;
+            const r = ratios[key];
+            if (r != null && r >= 0) {
+              proj.data[key][kw] = Math.round(cur * (r / anchorRatio));
+            } else {
+              proj.data[key][kw] = null;
+            }
+          }
+        }
+      }
+      // 미래월은 비워둠
+      for (let m = curM + 1; m <= 12; m++) {
+        const key = `${curY}-${String(m).padStart(2, '0')}`;
+        proj.data[key][kw] = null;
+      }
+    }
+
     proj.lastQueryDate = now.toISOString();
     renderProjectList();
     renderCompetitorGrid();
     await saveCompetitor();
+
+    if (datalabFailed) {
+      alert(`현재월 조회는 성공했지만 과거월 추정(데이터랩)이 실패했습니다.\n\n${datalabError}\n\n환경변수 NAVER_DATALAB_CLIENT_ID / SECRET 확인 후 다시 시도해주세요.`);
+    }
   } catch (err) {
     alert('조회 실패: ' + err.message);
   } finally {
