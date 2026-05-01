@@ -32,7 +32,7 @@
             "color": "blue"
           },
           "above": {
-            "value": null,
+            "value": 10001,
             "color": ""
           }
         },
