@@ -36,6 +36,19 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--gray-1);color:var(--
 .impersonate-badge{display:inline-flex;align-items:center;gap:4px;background:#fff7e6;border:1px solid #fa8c16;color:#fa8c16;padding:4px 10px;border-radius:14px;font-size:11px;font-weight:600;}
 .user-row-pw{font-family:monospace;background:var(--gray-2);padding:2px 8px;border-radius:4px;font-size:11px;color:var(--gray-7);}
 
+/* 제외 키워드 */
+.excl-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.excl-title{display:flex;align-items:center;gap:8px;}
+.excl-count{background:var(--gray-2);color:var(--gray-7);font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;}
+.excl-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+.excl-input{height:30px;border:1px solid var(--gray-3);border-radius:6px;padding:0 10px;font-size:12px;width:150px;outline:none;}
+.excl-input:focus{border-color:var(--blue);}
+.excl-list{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px;max-height:150px;overflow-y:auto;}
+.excl-tag{display:inline-flex;align-items:center;gap:4px;background:#fff1f2;border:1px solid #fecdd3;color:#9f1239;padding:3px 8px;border-radius:12px;font-size:11px;}
+.excl-tag-x{cursor:pointer;color:#9f1239;font-weight:700;border:none;background:none;padding:0 0 0 2px;font-size:13px;line-height:1;}
+.excl-tag-x:hover{color:#dc2626;}
+.excl-empty{font-size:11px;color:var(--gray-4);padding:4px 0;}
+
 /* 모달 */
 .modal-bg{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px;}
 .modal-bg.open{display:flex;}
@@ -421,6 +434,25 @@ td{padding:11px 14px;font-size:13px;color:var(--gray-7);}
     </div>
   </div></div>
 
+  <!-- 제외 키워드 -->
+  <div class="card"><div class="card-body" style="padding:12px 18px;">
+    <div class="excl-bar">
+      <div class="excl-title">
+        <span style="font-weight:600;color:var(--gray-7);font-size:13px;">📋 제외 키워드</span>
+        <span class="excl-count" id="exclCount">0개</span>
+      </div>
+      <div class="excl-actions">
+        <button class="action-btn" onclick="downloadExcludeTemplate()">⬇ 양식 다운로드</button>
+        <input type="file" id="exclFileInput" accept=".csv,text/csv" style="display:none;" onchange="uploadExcludeFile(event)">
+        <button class="action-btn" onclick="document.getElementById('exclFileInput').click()">📁 엑셀 불러오기</button>
+        <input type="text" class="excl-input" id="exclManualInput" placeholder="키워드 직접 추가" onkeydown="if(event.key==='Enter'){addManualExclude();event.preventDefault();}">
+        <button class="action-btn" onclick="addManualExclude()">+ 추가</button>
+        <button class="action-btn" onclick="clearAllExcludes()" style="color:#ef4444;">전체 삭제</button>
+      </div>
+    </div>
+    <div class="excl-list" id="exclList"></div>
+  </div></div>
+
   <!-- 필터 -->
   <div class="card">
     <div class="filter-section-row">
@@ -573,6 +605,9 @@ td{padding:11px 14px;font-size:13px;color:var(--gray-7);}
             <div class="comp-edit-row">
               <input type="text" class="comp-input" id="compNewKw" placeholder="키워드 입력 후 Enter" onkeydown="if(event.key==='Enter')addCompKeyword()">
               <button class="comp-add-btn" onclick="addCompKeyword()">+ 키워드 추가</button>
+              <button class="action-btn" onclick="downloadCompTemplate()">⬇ 양식 다운로드</button>
+              <input type="file" id="compFileInput" accept=".csv,text/csv" style="display:none;" onchange="uploadCompFile(event)">
+              <button class="action-btn" onclick="document.getElementById('compFileInput').click()">📁 엑셀 불러오기</button>
             </div>
             <div class="comp-thresholds" id="compThresholds"></div>
           </div>
@@ -764,6 +799,60 @@ const CAT_DATA = {
 let currentSeeds = [];
 let lastResults = [];
 
+// =============================================
+// CSV 유틸 (UTF-8 BOM 포함, 엑셀 호환)
+// =============================================
+function csvEscape(v) {
+  if (v == null) return '';
+  const s = String(v);
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+function downloadCsv(filename, rows) {
+  const csv = rows.map(r => r.map(csvEscape).join(',')).join('\r\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+}
+function parseCsvText(text) {
+  // BOM 제거
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+  const lines = text.split(/\r?\n/);
+  const out = [];
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    // 단순 파싱: 첫 컬럼만 사용 (따옴표 처리)
+    let kw = line.split(',')[0].trim();
+    if (kw.startsWith('"') && kw.endsWith('"')) kw = kw.slice(1, -1).replace(/""/g, '"');
+    if (kw) out.push(kw);
+  }
+  return out;
+}
+async function readFileAsText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(file, 'UTF-8');
+  });
+}
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// 제외 키워드 (localStorage 저장)
+const EXCLUDE_KEY = 'vml_excludeKeywords';
+function loadExcludeKeywords() {
+  try { return JSON.parse(localStorage.getItem(EXCLUDE_KEY) || '[]'); } catch { return []; }
+}
+function saveExcludeKeywords(list) {
+  localStorage.setItem(EXCLUDE_KEY, JSON.stringify(list));
+}
+let excludeKeywords = loadExcludeKeywords();
+
 // 컬럼 정의: fixed=항상표시, default=초기 체크 상태
 const COLUMN_CONFIG = [
   { key: 'rank', label: '순위', fixed: true },
@@ -779,8 +868,8 @@ const COLUMN_CONFIG = [
 ];
 let visibleColumns = new Set(COLUMN_CONFIG.filter(c => c.fixed || c.default).map(c => c.key));
 let viewOptionsOpen = false;
-let sortCol = 'totalSearch';
-let sortAsc = false;
+let sortCol = 'category';
+let sortAsc = true;
 
 
 function toggleFilter() {
@@ -885,13 +974,45 @@ function getCatLabel() {
   return c2label;
 }
 
-function getKwCategory(keyword) {
-  const healthKeys = Object.values(CAT_DATA.health.sub).flatMap(s => s.seeds);
-  const dietKeys = Object.values(CAT_DATA.diet.sub).flatMap(s => s.seeds);
-  if (healthKeys.some(k => keyword.includes(k) || k.includes(keyword))) return '건강식품';
-  if (dietKeys.some(k => keyword.includes(k) || k.includes(keyword))) return '다이어트식품';
+// 카테고리 정렬 순위 (CAT_DATA 정의 순서 따라감: 건강식품 13개 → 다이어트식품 15개)
+const CAT_ORDER = (() => {
+  const arr = [];
+  for (const [cat2Key, cat2Data] of Object.entries(CAT_DATA)) {
+    for (const subLabel of Object.keys(cat2Data.sub)) {
+      arr.push(`${cat2Key}::${subLabel}`);
+    }
+  }
+  return arr;
+})();
+function catRank(cat2Key, subLabel) {
+  const idx = CAT_ORDER.indexOf(`${cat2Key}::${subLabel || ''}`);
+  return idx === -1 ? CAT_ORDER.length : idx;
+}
+
+function getKwCategoryInfo(keyword) {
+  // 두 카테고리 모든 서브카테고리 순회: 가장 길게 매칭되는 시드 기준
+  let best = null;
+  for (const [cat2Key, cat2Data] of Object.entries(CAT_DATA)) {
+    for (const [subLabel, subData] of Object.entries(cat2Data.sub)) {
+      for (const seed of subData.seeds) {
+        const match = keyword.includes(seed) || seed.includes(keyword);
+        if (!match) continue;
+        const score = Math.min(seed.length, keyword.length);
+        if (!best || score > best.score) {
+          best = { cat2Key, cat2Label: cat2Data.label, subLabel, score };
+        }
+      }
+    }
+  }
+  if (best) return { cat2Key: best.cat2Key, cat2Label: best.cat2Label, subLabel: best.subLabel };
+  // fallback: 현재 cat2 선택값
   const cat2 = document.getElementById('cat2').value;
-  return cat2 === 'diet' ? '다이어트식품' : '건강식품';
+  if (cat2 === 'diet') return { cat2Key: 'diet', cat2Label: '다이어트식품', subLabel: null };
+  if (cat2 === 'health') return { cat2Key: 'health', cat2Label: '건강식품', subLabel: null };
+  return { cat2Key: 'health', cat2Label: '건강식품', subLabel: null };
+}
+function getKwCategory(keyword) {
+  return getKwCategoryInfo(keyword).cat2Label;
 }
 
 // =============================================
@@ -1526,6 +1647,45 @@ async function addCompKeyword() {
   await saveCompetitor();
 }
 
+function downloadCompTemplate() {
+  const rows = [
+    ['키워드'],
+    ['예시1: 비타민C'],
+    ['예시2: 콜라겐'],
+    ['(이 줄과 위 예시 줄을 지우고 키워드를 한 줄에 하나씩 작성하세요)'],
+  ];
+  downloadCsv('경쟁사_키워드_양식.csv', rows);
+}
+
+async function uploadCompFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const proj = activeProject();
+  if (!proj) { alert('프로젝트가 없습니다.'); event.target.value = ''; return; }
+  try {
+    const text = await readFileAsText(file);
+    const lines = parseCsvText(text);
+    const filtered = lines.filter((l, i) => {
+      if (i === 0 && /키워드|keyword/i.test(l)) return false;
+      if (l.startsWith('예시') || l.startsWith('(')) return false;
+      return true;
+    });
+    let added = 0, dup = 0;
+    for (const kw of filtered) {
+      if (proj.keywords.includes(kw)) { dup++; continue; }
+      proj.keywords.push(kw);
+      added++;
+    }
+    renderCompetitorGrid();
+    if (_compEditMode) renderFavoritesPanel();
+    await saveCompetitor();
+    alert(`${added}개 키워드 추가됨${dup ? ` (중복 ${dup}개 무시)` : ''} (총 ${proj.keywords.length}개)`);
+  } catch (e) {
+    alert('파일 읽기 실패: ' + e.message);
+  }
+  event.target.value = '';
+}
+
 async function removeCompKeyword(kw) {
   const proj = activeProject();
   if (!proj) return;
@@ -1633,6 +1793,12 @@ async function fetchData() {
 
     let results = Array.from(allResults.values());
 
+    // 제외 키워드 필터 (대소문자 무시, 정확히 일치)
+    if (excludeKeywords.length) {
+      const set = new Set(excludeKeywords.map(k => k.toLowerCase()));
+      results = results.filter(r => !set.has(r.keyword.toLowerCase()));
+    }
+
     // 검색수 필터
     const minV = parseInt(document.getElementById('minSearch').value) || 0;
     const maxV = parseInt(document.getElementById('maxSearch').value) || Infinity;
@@ -1691,7 +1857,116 @@ function fmtNum(n) {
   return (n || 0).toLocaleString();
 }
 
+// =============================================
+// 제외 키워드 관리
+// =============================================
+function renderExcludeList() {
+  const el = document.getElementById('exclList');
+  const count = document.getElementById('exclCount');
+  if (!el) return;
+  count.textContent = `${excludeKeywords.length}개`;
+  if (!excludeKeywords.length) {
+    el.innerHTML = '<div class="excl-empty">등록된 제외 키워드가 없습니다. CSV 양식을 받아 엑셀에서 작성 후 불러오세요.</div>';
+    return;
+  }
+  el.innerHTML = excludeKeywords.map(k => `
+    <span class="excl-tag">${k}<button class="excl-tag-x" onclick="removeExclude('${k.replace(/'/g, "\\'")}')">×</button></span>
+  `).join('');
+}
+function addManualExclude() {
+  const input = document.getElementById('exclManualInput');
+  const kw = (input.value || '').trim();
+  if (!kw) return;
+  if (!excludeKeywords.includes(kw)) {
+    excludeKeywords.push(kw);
+    saveExcludeKeywords(excludeKeywords);
+    renderExcludeList();
+    if (lastResults.length) renderTable(lastResults);
+  }
+  input.value = '';
+}
+function removeExclude(kw) {
+  excludeKeywords = excludeKeywords.filter(k => k !== kw);
+  saveExcludeKeywords(excludeKeywords);
+  renderExcludeList();
+  if (lastResults.length) renderTable(lastResults);
+}
+function clearAllExcludes() {
+  if (!excludeKeywords.length) return;
+  if (!confirm(`제외 키워드 ${excludeKeywords.length}개를 모두 삭제할까요?`)) return;
+  excludeKeywords = [];
+  saveExcludeKeywords(excludeKeywords);
+  renderExcludeList();
+  if (lastResults.length) renderTable(lastResults);
+}
+function downloadExcludeTemplate() {
+  const rows = [
+    ['제외할 키워드'],
+    ['예시1: 농협'],
+    ['예시2: 어버이날'],
+    ['(이 줄과 위 예시 줄을 지우고 키워드를 한 줄에 하나씩 작성하세요)'],
+  ];
+  downloadCsv('제외_키워드_양식.csv', rows);
+}
+async function uploadExcludeFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  try {
+    const text = await readFileAsText(file);
+    const lines = parseCsvText(text);
+    // 헤더 행 추정: 첫 줄이 "제외할 키워드" 또는 비슷하면 스킵
+    const filtered = lines.filter((l, i) => {
+      if (i === 0 && /제외|키워드|exclude|keyword/i.test(l)) return false;
+      if (l.startsWith('예시') || l.startsWith('(')) return false;
+      return true;
+    });
+    let added = 0;
+    for (const kw of filtered) {
+      if (!excludeKeywords.includes(kw)) {
+        excludeKeywords.push(kw);
+        added++;
+      }
+    }
+    saveExcludeKeywords(excludeKeywords);
+    renderExcludeList();
+    if (lastResults.length) renderTable(lastResults);
+    alert(`${added}개 키워드 추가됨 (총 ${excludeKeywords.length}개)`);
+  } catch (e) {
+    alert('파일 읽기 실패: ' + e.message);
+  }
+  event.target.value = ''; // 같은 파일 재선택 가능하게
+}
+
+function downloadResultCsv() {
+  if (!lastResults.length) return alert('조회 결과가 없습니다.');
+  const sorted = sortData(lastResults, sortCol, sortAsc);
+  const header = ['순위','키워드','대표 카테고리','검색수','PC 검색수','모바일 검색수','PC 비율(%)','경쟁강도','평균 광고클릭수'];
+  const rows = sorted.map((r, i) => {
+    const info = getKwCategoryInfo(r.keyword);
+    const catCell = info.subLabel ? `${info.cat2Label} > ${info.subLabel}` : info.cat2Label;
+    const avgClk = (r.monthlyAvePcClkCnt || 0) + (r.monthlyAveMobileClkCnt || 0);
+    return [i+1, r.keyword, catCell, r.totalSearch, r.monthlyPcQcCnt, r.monthlyMobileQcCnt, r.pcRatio, r.compIdx || '', avgClk];
+  });
+  const filename = `카테고리_조회_${getCatLabel().replace(/[\s>]/g,'_').replace(/_+/g,'_')}_${todayStr()}.csv`;
+  downloadCsv(filename, [header, ...rows]);
+}
+
 function sortData(data, col, asc) {
+  if (col === 'category') {
+    const cache = new Map();
+    const rank = (kw) => {
+      if (cache.has(kw)) return cache.get(kw);
+      const info = getKwCategoryInfo(kw);
+      const r = catRank(info.cat2Key, info.subLabel);
+      cache.set(kw, r);
+      return r;
+    };
+    return [...data].sort((a, b) => {
+      const ar = rank(a.keyword), br = rank(b.keyword);
+      if (ar !== br) return asc ? ar - br : br - ar;
+      return b.totalSearch - a.totalSearch; // 그룹 내 검색수 내림차순
+    });
+  }
   return [...data].sort((a, b) => {
     const va = a[col], vb = b[col];
     if (typeof va === 'string') return asc ? va.localeCompare(vb) : vb.localeCompare(va);
@@ -1725,10 +2000,12 @@ function renderTable(results) {
   const rows = sorted.map((r, i) => {
     const rank = i + 1;
     const barW = Math.round((r.totalSearch / maxSearch) * 100);
-    const kwCat = getKwCategory(r.keyword);
-    const catBadge = kwCat === '건강식품'
-      ? `<span class="badge badge-health">건강식품</span>`
-      : `<span class="badge badge-diet">다이어트식품</span>`;
+    const kwInfo = getKwCategoryInfo(r.keyword);
+    const badgeClass = kwInfo.cat2Key === 'health' ? 'badge-health' : 'badge-diet';
+    const badgeText = kwInfo.subLabel
+      ? `${kwInfo.cat2Label} &gt; ${kwInfo.subLabel}`
+      : kwInfo.cat2Label;
+    const catBadge = `<span class="badge ${badgeClass}" title="${kwInfo.cat2Label}${kwInfo.subLabel ? ' > ' + kwInfo.subLabel : ''}">${badgeText}</span>`;
     const isHigh = r.totalSearch > 10000;
     const avgClk = (r.monthlyAvePcClkCnt || 0) + (r.monthlyAveMobileClkCnt || 0);
 
@@ -1779,6 +2056,7 @@ function renderTable(results) {
         <span class="result-sub">월간 검색량 기준</span>
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
+        <button class="action-btn" onclick="downloadResultCsv()">⬇ CSV 다운로드</button>
         <button class="action-btn" onclick="toggleViewOptions()">⊞ 보기옵션</button>
       </div>
     </div>
@@ -1799,7 +2077,7 @@ function renderTable(results) {
         <thead><tr>
           <th onclick="doSort('rank')" class="${sortCol==='rank'?'sorted':''}">순위${si('rank')}</th>
           <th onclick="doSort('keyword')" class="${sortCol==='keyword'?'sorted':''}">키워드${si('keyword')}</th>
-          ${v.has('category') ? `<th>대표 카테고리</th>` : ''}
+          ${v.has('category') ? `<th onclick="doSort('category')" class="${sortCol==='category'?'sorted':''}">대표 카테고리${si('category')}</th>` : ''}
           ${v.has('classification') ? `<th>분류</th>` : ''}
           ${v.has('totalSearch') ? `<th onclick="doSort('totalSearch')" class="${sortCol==='totalSearch'?'sorted':''}">검색수${si('totalSearch')}</th>` : ''}
           ${v.has('pcSearch') ? `<th onclick="doSort('monthlyPcQcCnt')" class="${sortCol==='monthlyPcQcCnt'?'sorted':''}">PC 검색수${si('monthlyPcQcCnt')}</th>` : ''}
@@ -1811,7 +2089,7 @@ function renderTable(results) {
         <tbody>${rows}</tbody>
       </table>
     </div>
-    <p class="hint">💡 검색수 = PC + 모바일 합산 | 네이버 검색광고 API 기준 | 최대 500개</p>`;
+    <p class="hint">💡 검색수 = PC + 모바일 합산 | 네이버 검색광고 API 기준 | 카테고리 → 검색수 순 정렬</p>`;
 }
 
 function toggleViewOptions() {
@@ -2205,6 +2483,7 @@ checkAuth().then(async ok => {
   if (!ok) return;
   await loadFavoritesData();
   onCat2Change();
+  renderExcludeList();
 });
 </script>
 </body>
