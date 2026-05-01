@@ -158,6 +158,8 @@ body.view-competitor #viewKeyword{display:none !important;}
 .kw-star{background:none;border:none;cursor:pointer;font-size:16px;padding:2px 6px;color:var(--gray-3);transition:color .15s,transform .15s;font-family:inherit;line-height:1;vertical-align:middle;}
 .kw-star:hover{color:#fbbf24;transform:scale(1.15);}
 .kw-star.on{color:#fbbf24;}
+.kw-exclude{background:none;border:none;cursor:pointer;font-size:13px;padding:2px 6px;opacity:.35;transition:opacity .15s,transform .15s;font-family:inherit;line-height:1;vertical-align:middle;}
+.kw-exclude:hover{opacity:1;transform:scale(1.15);}
 
 /* 경쟁사 분석 — 즐겨찾기 우측 패널 */
 .comp-grid-row{display:flex;gap:14px;align-items:flex-start;}
@@ -319,7 +321,7 @@ tbody tr:hover{background:var(--gray-1);}
 td{padding:11px 14px;font-size:13px;color:var(--gray-7);}
 
 /* 배지 */
-.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;white-space:nowrap;max-width:280px;overflow:hidden;text-overflow:ellipsis;}
 .badge-health{background:var(--green-light);color:var(--green);}
 .badge-diet{background:var(--orange-light);color:var(--orange);}
 .badge-shopping{background:var(--blue-light);color:var(--blue);}
@@ -653,7 +655,7 @@ td{padding:11px 14px;font-size:13px;color:var(--gray-7);}
     <div class="modal-body">
       <div class="excl-modal-section">
         <div class="excl-modal-label">새 키워드 추가 <span class="excl-modal-hint">(한 줄에 하나씩, 여러 개 가능)</span></div>
-        <textarea class="excl-textarea" id="exclBulkInput" rows="6" placeholder="오메가3&#10;오메가4&#10;오메가5" onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){addBulkExcludes();event.preventDefault();}"></textarea>
+        <textarea class="excl-textarea" id="exclBulkInput" rows="6" placeholder="키워드1&#10;키워드2&#10;키워드3" onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){addBulkExcludes();event.preventDefault();}"></textarea>
         <div class="excl-modal-actions">
           <span style="font-size:11px;color:var(--gray-5);margin-right:auto;">💡 Ctrl + Enter 로 빠른 추가</span>
           <button class="action-btn primary" onclick="addBulkExcludes()">+ 모두 추가</button>
@@ -1020,7 +1022,10 @@ function getSeeds() {
     const subData = CAT_DATA[cat2]?.sub[cat3];
     return subData?.seeds || [cat3];
   }
-  return Object.values(CAT_DATA[cat2].sub).flatMap(s => s.seeds.slice(0, 2));
+  // cat3='전체' 일 때도 통합 모드와 동일하게 모든 시드 사용 (dedup)
+  const all = new Set();
+  Object.values(CAT_DATA[cat2].sub).forEach(s => s.seeds.forEach(k => all.add(k)));
+  return Array.from(all);
 }
 
 function getCatLabel() {
@@ -1050,26 +1055,52 @@ function catRank(cat2Key, subLabel) {
 }
 
 function getKwCategoryInfo(keyword) {
-  // 두 카테고리 모든 서브카테고리 순회: 가장 길게 매칭되는 시드 기준
+  // 4단계까지 매칭: cat1(식품 고정) > cat2 > cat3 > cat4
+  // cat4 매칭이 가장 구체적이므로 우선순위 높음 (+100 가산점), 길이로 best 선정
   let best = null;
   for (const [cat2Key, cat2Data] of Object.entries(CAT_DATA)) {
     for (const [subLabel, subData] of Object.entries(cat2Data.sub)) {
+      // cat4 우선 매칭
+      if (Array.isArray(subData.cat4)) {
+        for (const cat4Item of subData.cat4) {
+          const m = keyword.includes(cat4Item) || cat4Item.includes(keyword);
+          if (!m) continue;
+          const score = Math.min(cat4Item.length, keyword.length) + 100;
+          if (!best || score > best.score) {
+            best = { cat2Key, cat2Label: cat2Data.label, subLabel, cat4Label: cat4Item, score };
+          }
+        }
+      }
+      // cat3 시드 매칭 (cat4 없거나 매칭 실패 시)
       for (const seed of subData.seeds) {
-        const match = keyword.includes(seed) || seed.includes(keyword);
-        if (!match) continue;
+        const m = keyword.includes(seed) || seed.includes(keyword);
+        if (!m) continue;
         const score = Math.min(seed.length, keyword.length);
         if (!best || score > best.score) {
-          best = { cat2Key, cat2Label: cat2Data.label, subLabel, score };
+          best = { cat2Key, cat2Label: cat2Data.label, subLabel, cat4Label: null, score };
         }
       }
     }
   }
-  if (best) return { cat2Key: best.cat2Key, cat2Label: best.cat2Label, subLabel: best.subLabel };
+  if (best) return {
+    cat1Label: '식품',
+    cat2Key: best.cat2Key,
+    cat2Label: best.cat2Label,
+    subLabel: best.subLabel,
+    cat4Label: best.cat4Label,
+  };
   // fallback: 현재 cat2 선택값
   const cat2 = document.getElementById('cat2').value;
-  if (cat2 === 'diet') return { cat2Key: 'diet', cat2Label: '다이어트식품', subLabel: null };
-  if (cat2 === 'health') return { cat2Key: 'health', cat2Label: '건강식품', subLabel: null };
-  return { cat2Key: 'health', cat2Label: '건강식품', subLabel: null };
+  const fallback = { cat1Label: '식품', subLabel: null, cat4Label: null };
+  if (cat2 === 'diet') return { ...fallback, cat2Key: 'diet', cat2Label: '다이어트식품' };
+  if (cat2 === 'health') return { ...fallback, cat2Key: 'health', cat2Label: '건강식품' };
+  return { ...fallback, cat2Key: 'health', cat2Label: '건강식품' };
+}
+function buildCatPath(info, sep = ' > ') {
+  const parts = [info.cat1Label, info.cat2Label];
+  if (info.subLabel) parts.push(info.subLabel);
+  if (info.cat4Label) parts.push(info.cat4Label);
+  return parts.join(sep);
 }
 function getKwCategory(keyword) {
   return getKwCategoryInfo(keyword).cat2Label;
@@ -1916,8 +1947,8 @@ async function fetchData() {
     const chunks = [];
     for (let i = 0; i < seeds.length; i += chunkSize) chunks.push(seeds.slice(i, i + chunkSize));
 
-    const isAllMode = document.getElementById('cat2').value === 'all';
-    const chunkDelay = isAllMode ? 600 : 200;
+    // 시드 많을수록 네이버 API rate limit 회피 위해 딜레이 증가
+    const chunkDelay = seeds.length > 80 ? 600 : seeds.length > 30 ? 400 : 200;
 
     for (let i = 0; i < chunks.length; i++) {
       setProgress(Math.round(((i + 1) / chunks.length) * 100), i * chunkSize, seeds.length);
@@ -2059,6 +2090,20 @@ async function addBulkExcludes() {
   ta.focus();
   if (dup > 0) alert(`${added}개 추가됨 (중복 ${dup}개 무시) — 총 ${excludeKeywords.length}개`);
 }
+async function quickExclude(kw) {
+  if (excludeKeywords.includes(kw)) {
+    alert(`"${kw}" 는 이미 제외 키워드에 등록되어 있습니다.`);
+    return;
+  }
+  const next = [...excludeKeywords, kw];
+  await saveExcludeKeywords(next);
+  renderExcludeList();
+  // 결과 테이블에서도 즉시 제거
+  if (lastResults.length) {
+    lastResults = lastResults.filter(r => r.keyword !== kw);
+    renderTable(lastResults);
+  }
+}
 async function removeExclude(kw) {
   const next = excludeKeywords.filter(k => k !== kw);
   await saveExcludeKeywords(next);
@@ -2078,7 +2123,7 @@ function downloadResultCsv() {
   const header = ['순위','키워드','대표 카테고리','검색수','PC 검색수','모바일 검색수','PC 비율(%)','경쟁강도','평균 광고클릭수'];
   const rows = sorted.map((r, i) => {
     const info = getKwCategoryInfo(r.keyword);
-    const catCell = info.subLabel ? `${info.cat2Label} > ${info.subLabel}` : info.cat2Label;
+    const catCell = buildCatPath(info, ' > ');
     const avgClk = (r.monthlyAvePcClkCnt || 0) + (r.monthlyAveMobileClkCnt || 0);
     return [i+1, r.keyword, catCell, r.totalSearch, r.monthlyPcQcCnt, r.monthlyMobileQcCnt, r.pcRatio, r.compIdx || '', avgClk];
   });
@@ -2137,18 +2182,19 @@ function renderTable(results) {
     const barW = Math.round((r.totalSearch / maxSearch) * 100);
     const kwInfo = getKwCategoryInfo(r.keyword);
     const badgeClass = kwInfo.cat2Key === 'health' ? 'badge-health' : 'badge-diet';
-    const badgeText = kwInfo.subLabel
-      ? `${kwInfo.cat2Label} &gt; ${kwInfo.subLabel}`
-      : kwInfo.cat2Label;
-    const catBadge = `<span class="badge ${badgeClass}" title="${kwInfo.cat2Label}${kwInfo.subLabel ? ' > ' + kwInfo.subLabel : ''}">${badgeText}</span>`;
+    const badgeText = buildCatPath(kwInfo, ' &gt; ');
+    const titleText = buildCatPath(kwInfo, ' > ');
+    const catBadge = `<span class="badge ${badgeClass}" title="${titleText}">${badgeText}</span>`;
     const isHigh = r.totalSearch > 10000;
     const avgClk = (r.monthlyAvePcClkCnt || 0) + (r.monthlyAveMobileClkCnt || 0);
 
     const isFav = _favorites.has(r.keyword);
+    const escKw = escapeAttr ? escapeAttr(r.keyword) : r.keyword.replace(/'/g, "\\'");
     return `<tr>
       <td><span style="color:var(--gray-5);font-weight:600;margin-right:4px;">${rank}</span>${medal(rank)}</td>
       <td>
-        <button class="kw-star${isFav ? ' on' : ''}" onclick="toggleFavorite('${escapeAttr ? escapeAttr(r.keyword) : r.keyword.replace(/'/g, "\\'")}', this)" title="즐겨찾기">${isFav ? '★' : '☆'}</button>
+        <button class="kw-star${isFav ? ' on' : ''}" onclick="toggleFavorite('${escKw}', this)" title="즐겨찾기">${isFav ? '★' : '☆'}</button>
+        <button class="kw-exclude" onclick="quickExclude('${escKw}')" title="제외 키워드로 추가">🚫</button>
         <strong>${r.keyword}</strong>
       </td>
       ${v.has('category') ? `<td>${catBadge}</td>` : ''}
