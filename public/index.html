@@ -43,8 +43,14 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--gray-1);color:var(--
 .excl-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
 .excl-input{height:30px;border:1px solid var(--gray-3);border-radius:6px;padding:0 10px;font-size:12px;width:150px;outline:none;}
 .excl-input:focus{border-color:var(--blue);}
-.excl-panel{margin-top:12px;padding-top:12px;border-top:1px solid var(--gray-2);}
-.excl-panel-row{display:flex;gap:6px;align-items:center;margin-bottom:10px;}
+.excl-modal-section{margin-bottom:8px;}
+.excl-modal-label{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--gray-7);margin-bottom:8px;}
+.excl-modal-hint{font-size:11px;font-weight:400;color:var(--gray-5);}
+.excl-modal-actions{display:flex;justify-content:flex-end;margin-top:8px;}
+.excl-modal-divider{height:1px;background:var(--gray-2);margin:18px 0;}
+.excl-modal-list{max-height:340px;}
+.excl-textarea{width:100%;border:1px solid var(--gray-3);border-radius:8px;padding:10px 12px;font-size:13px;font-family:inherit;resize:vertical;outline:none;line-height:1.5;}
+.excl-textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,0.1);}
 .excl-list{display:flex;flex-direction:column;gap:4px;max-height:300px;overflow-y:auto;}
 .excl-row{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:var(--gray-1);border:1px solid var(--gray-2);border-radius:6px;font-size:12px;color:var(--gray-7);}
 .excl-row:hover{background:#f0f9ff;border-color:var(--blue);}
@@ -446,16 +452,8 @@ td{padding:11px 14px;font-size:13px;color:var(--gray-7);}
         <span class="excl-count" id="exclCount">0개</span>
       </div>
       <div class="excl-actions">
-        <button class="action-btn" id="exclToggleBtn" onclick="toggleExcludePanel()">⚙ 관리 ▼</button>
+        <button class="action-btn" onclick="openExcludeModal()">⚙ 제외 키워드 관리</button>
       </div>
-    </div>
-    <div class="excl-panel" id="exclPanel" style="display:none;">
-      <div class="excl-panel-row">
-        <input type="text" class="excl-input" id="exclManualInput" placeholder="제외할 키워드 입력 후 Enter" onkeydown="if(event.key==='Enter'){addManualExclude();event.preventDefault();}">
-        <button class="action-btn primary" onclick="addManualExclude()">+ 추가</button>
-        <button class="action-btn" onclick="clearAllExcludes()" style="color:#ef4444;margin-left:auto;">전체 삭제</button>
-      </div>
-      <div class="excl-list" id="exclList"></div>
     </div>
   </div></div>
 
@@ -643,6 +641,34 @@ td{padding:11px 14px;font-size:13px;color:var(--gray-7);}
     </div>
   </div>
 
+</div>
+
+<!-- 제외 키워드 관리 모달 -->
+<div class="modal-bg" id="exclModal" onclick="if(event.target===this)closeExcludeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">📋 제외 키워드 관리</span>
+      <button class="modal-close" onclick="closeExcludeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="excl-modal-section">
+        <div class="excl-modal-label">새 키워드 추가 <span class="excl-modal-hint">(한 줄에 하나씩, 여러 개 가능)</span></div>
+        <textarea class="excl-textarea" id="exclBulkInput" rows="6" placeholder="오메가3&#10;오메가4&#10;오메가5" onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){addBulkExcludes();event.preventDefault();}"></textarea>
+        <div class="excl-modal-actions">
+          <span style="font-size:11px;color:var(--gray-5);margin-right:auto;">💡 Ctrl + Enter 로 빠른 추가</span>
+          <button class="action-btn primary" onclick="addBulkExcludes()">+ 모두 추가</button>
+        </div>
+      </div>
+      <div class="excl-modal-divider"></div>
+      <div class="excl-modal-section">
+        <div class="excl-modal-label">
+          등록된 키워드 <span class="excl-count" id="exclModalCount">0개</span>
+          <button class="action-btn" onclick="clearAllExcludes()" style="color:#ef4444;margin-left:auto;">전체 삭제</button>
+        </div>
+        <div class="excl-list excl-modal-list" id="exclList"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- 사용자 관리 모달 -->
@@ -1980,19 +2006,24 @@ function fmtNum(n) {
 // =============================================
 // 제외 키워드 관리
 // =============================================
-let _exclPanelOpen = false;
-function toggleExcludePanel() {
-  _exclPanelOpen = !_exclPanelOpen;
-  const panel = document.getElementById('exclPanel');
-  const btn = document.getElementById('exclToggleBtn');
-  if (panel) panel.style.display = _exclPanelOpen ? 'block' : 'none';
-  if (btn) btn.textContent = _exclPanelOpen ? '⚙ 관리 ▲' : '⚙ 관리 ▼';
+function openExcludeModal() {
+  document.getElementById('exclModal').classList.add('open');
+  renderExcludeList();
+  // 입력란 초기화 + 포커스
+  const ta = document.getElementById('exclBulkInput');
+  if (ta) { ta.value = ''; setTimeout(() => ta.focus(), 50); }
+}
+function closeExcludeModal() {
+  document.getElementById('exclModal').classList.remove('open');
 }
 function renderExcludeList() {
   const el = document.getElementById('exclList');
-  const count = document.getElementById('exclCount');
+  const countBar = document.getElementById('exclCount');
+  const countModal = document.getElementById('exclModalCount');
+  const total = `${excludeKeywords.length}개`;
+  if (countBar) countBar.textContent = total;
+  if (countModal) countModal.textContent = total;
   if (!el) return;
-  count.textContent = `${excludeKeywords.length}개`;
   if (!excludeKeywords.length) {
     el.innerHTML = '<div class="excl-empty">등록된 제외 키워드가 없습니다.</div>';
     return;
@@ -2004,17 +2035,29 @@ function renderExcludeList() {
     </div>
   `).join('');
 }
-async function addManualExclude() {
-  const input = document.getElementById('exclManualInput');
-  const kw = (input.value || '').trim();
-  if (!kw) return;
-  if (!excludeKeywords.includes(kw)) {
-    const next = [...excludeKeywords, kw];
-    await saveExcludeKeywords(next);
-    renderExcludeList();
-    if (lastResults.length) renderTable(lastResults);
+async function addBulkExcludes() {
+  const ta = document.getElementById('exclBulkInput');
+  if (!ta) return;
+  const lines = (ta.value || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+  if (!lines.length) return;
+  const next = [...excludeKeywords];
+  let added = 0, dup = 0;
+  for (const kw of lines) {
+    if (next.includes(kw)) { dup++; continue; }
+    next.push(kw);
+    added++;
   }
-  input.value = '';
+  if (added === 0) {
+    alert('추가할 키워드가 없습니다 (이미 등록된 키워드 ' + dup + '개).');
+    ta.value = '';
+    return;
+  }
+  await saveExcludeKeywords(next);
+  renderExcludeList();
+  if (lastResults.length) renderTable(lastResults);
+  ta.value = '';
+  ta.focus();
+  if (dup > 0) alert(`${added}개 추가됨 (중복 ${dup}개 무시) — 총 ${excludeKeywords.length}개`);
 }
 async function removeExclude(kw) {
   const next = excludeKeywords.filter(k => k !== kw);
