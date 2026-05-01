@@ -16,7 +16,8 @@
         "category",
         "keyword",
         "competitor"
-      ]
+      ],
+      "password": "1234"
     },
     {
       "id": "이혜림",
