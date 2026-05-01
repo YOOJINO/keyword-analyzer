@@ -400,6 +400,7 @@ td{padding:11px 14px;font-size:13px;color:var(--gray-7);}
         <select class="cat-select" id="cat2" onchange="onCat2Change()">
           <option value="health">건강식품</option>
           <option value="diet">다이어트식품</option>
+          <option value="all">건강식품 + 다이어트식품</option>
         </select>
         <span class="cat-arrow">▼</span>
       </div>
@@ -822,6 +823,14 @@ function onCat2Change() {
   cat3.innerHTML = '<option value="">전체</option>';
   const cat4 = document.getElementById('cat4');
   cat4.innerHTML = '<option value="">전체</option>';
+  if (cat2 === 'all') {
+    cat3.disabled = true;
+    cat4.disabled = true;
+    onCat3Change();
+    return;
+  }
+  cat3.disabled = false;
+  cat4.disabled = false;
   const data = CAT_DATA[cat2];
   Object.keys(data.sub).forEach(k => {
     const opt = document.createElement('option');
@@ -851,6 +860,12 @@ function getSeeds() {
   const cat2 = document.getElementById('cat2').value;
   const cat3 = document.getElementById('cat3').value;
   const cat4 = document.getElementById('cat4').value;
+  if (cat2 === 'all') {
+    const all = new Set();
+    Object.values(CAT_DATA.health.sub).forEach(s => s.seeds.forEach(k => all.add(k)));
+    Object.values(CAT_DATA.diet.sub).forEach(s => s.seeds.forEach(k => all.add(k)));
+    return Array.from(all);
+  }
   if (cat4 && cat4 !== '') return [cat4];
   if (cat3 && cat3 !== '') {
     const subData = CAT_DATA[cat2]?.sub[cat3];
@@ -863,6 +878,7 @@ function getCatLabel() {
   const cat2 = document.getElementById('cat2').value;
   const cat3 = document.getElementById('cat3').value;
   const cat4 = document.getElementById('cat4').value;
+  if (cat2 === 'all') return '건강식품 + 다이어트식품';
   const c2label = cat2 === 'health' ? '건강식품' : '다이어트식품';
   if (cat4 && cat4 !== '') return `${c2label} > ${cat3} > ${cat4}`;
   if (cat3 && cat3 !== '') return `${c2label} > ${cat3}`;
@@ -1594,6 +1610,9 @@ async function fetchData() {
     const chunks = [];
     for (let i = 0; i < seeds.length; i += chunkSize) chunks.push(seeds.slice(i, i + chunkSize));
 
+    const isAllMode = document.getElementById('cat2').value === 'all';
+    const chunkDelay = isAllMode ? 600 : 200;
+
     for (let i = 0; i < chunks.length; i++) {
       setProgress(Math.round(((i + 1) / chunks.length) * 100), i * chunkSize, seeds.length);
 
@@ -1607,7 +1626,7 @@ async function fetchData() {
       (data.keywords || []).forEach(k => {
         if (!allResults.has(k.keyword)) allResults.set(k.keyword, k);
       });
-      await sleep(200);
+      await sleep(chunkDelay);
     }
 
     setProgress(100, seeds.length, seeds.length);
@@ -1622,7 +1641,7 @@ async function fetchData() {
     }
 
     results.sort((a, b) => b.totalSearch - a.totalSearch);
-    lastResults = results.slice(0, 500);
+    lastResults = results;
 
     setTimeout(() => { document.getElementById('progressWrap').style.display = 'none'; }, 800);
     renderTable(lastResults);
