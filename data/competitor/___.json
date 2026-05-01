@@ -27,7 +27,7 @@
             "color": "red"
           },
           "between": {
-            "from": null,
+            "from": 1000,
             "to": null,
             "color": ""
           },
