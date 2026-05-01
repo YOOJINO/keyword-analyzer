@@ -843,15 +843,43 @@ function todayStr() {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
-// 제외 키워드 (localStorage 저장)
-const EXCLUDE_KEY = 'vml_excludeKeywords';
-function loadExcludeKeywords() {
-  try { return JSON.parse(localStorage.getItem(EXCLUDE_KEY) || '[]'); } catch { return []; }
+// 제외 키워드 (서버 DB 동기화 — data/excludes/<userId>.json)
+let excludeKeywords = [];
+async function fetchExcludeKeywords() {
+  try {
+    const resp = await fetch('/api/excludes');
+    if (!resp.ok) return;
+    const data = await resp.json();
+    excludeKeywords = Array.isArray(data.excludes) ? data.excludes : [];
+
+    // 마이그레이션: localStorage 잔존 데이터를 한 번만 DB로 이전
+    let legacy = [];
+    try { legacy = JSON.parse(localStorage.getItem('vml_excludeKeywords') || '[]'); } catch {}
+    if (legacy.length) {
+      if (!excludeKeywords.length) {
+        excludeKeywords = legacy;
+        await fetch('/api/excludes', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ excludes: legacy }),
+        });
+      }
+      localStorage.removeItem('vml_excludeKeywords');
+    }
+  } catch { /* ignore */ }
 }
-function saveExcludeKeywords(list) {
-  localStorage.setItem(EXCLUDE_KEY, JSON.stringify(list));
+async function saveExcludeKeywords(list) {
+  excludeKeywords = list;
+  try {
+    await fetch('/api/excludes', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ excludes: list }),
+    });
+  } catch (e) {
+    alert('제외 키워드 저장 실패: ' + e.message);
+  }
 }
-let excludeKeywords = loadExcludeKeywords();
 
 // 컬럼 정의: fixed=항상표시, default=초기 체크 상태
 const COLUMN_CONFIG = [
@@ -1728,13 +1756,19 @@ async function addCompKeyword() {
 }
 
 function downloadCompTemplate() {
-  const rows = [
-    ['키워드'],
-    ['예시1: 비타민C'],
-    ['예시2: 콜라겐'],
-    ['(이 줄과 위 예시 줄을 지우고 키워드를 한 줄에 하나씩 작성하세요)'],
-  ];
-  downloadCsv('경쟁사_키워드_양식.csv', rows);
+  const proj = activeProject();
+  const projName = proj ? proj.name : '프로젝트';
+  // 현재 프로젝트에 등록된 키워드를 양식으로 내보냄
+  const rows = [['키워드']];
+  if (proj && proj.keywords && proj.keywords.length) {
+    proj.keywords.forEach(k => rows.push([k]));
+  } else {
+    rows.push(['예시1: 비타민C']);
+    rows.push(['예시2: 콜라겐']);
+    rows.push(['(이 줄과 위 예시 줄을 지우고 키워드를 한 줄에 하나씩 작성하세요)']);
+  }
+  const safeName = projName.replace(/[\\/:*?"<>|]/g, '_');
+  downloadCsv(`경쟁사_키워드_양식_${safeName}.csv`, rows);
 }
 
 async function uploadCompFile(event) {
@@ -1945,47 +1979,49 @@ function renderExcludeList() {
   const count = document.getElementById('exclCount');
   if (!el) return;
   count.textContent = `${excludeKeywords.length}개`;
+  // 키워드 태그 노출하지 않음 — 카운트만 표시. 관리는 양식 다운로드/엑셀 불러오기로.
   if (!excludeKeywords.length) {
     el.innerHTML = '<div class="excl-empty">등록된 제외 키워드가 없습니다. CSV 양식을 받아 엑셀에서 작성 후 불러오세요.</div>';
-    return;
+  } else {
+    el.innerHTML = '';
   }
-  el.innerHTML = excludeKeywords.map(k => `
-    <span class="excl-tag">${k}<button class="excl-tag-x" onclick="removeExclude('${k.replace(/'/g, "\\'")}')">×</button></span>
-  `).join('');
 }
-function addManualExclude() {
+async function addManualExclude() {
   const input = document.getElementById('exclManualInput');
   const kw = (input.value || '').trim();
   if (!kw) return;
   if (!excludeKeywords.includes(kw)) {
-    excludeKeywords.push(kw);
-    saveExcludeKeywords(excludeKeywords);
+    const next = [...excludeKeywords, kw];
+    await saveExcludeKeywords(next);
     renderExcludeList();
     if (lastResults.length) renderTable(lastResults);
   }
   input.value = '';
 }
-function removeExclude(kw) {
-  excludeKeywords = excludeKeywords.filter(k => k !== kw);
-  saveExcludeKeywords(excludeKeywords);
+async function removeExclude(kw) {
+  const next = excludeKeywords.filter(k => k !== kw);
+  await saveExcludeKeywords(next);
   renderExcludeList();
   if (lastResults.length) renderTable(lastResults);
 }
-function clearAllExcludes() {
+async function clearAllExcludes() {
   if (!excludeKeywords.length) return;
   if (!confirm(`제외 키워드 ${excludeKeywords.length}개를 모두 삭제할까요?`)) return;
-  excludeKeywords = [];
-  saveExcludeKeywords(excludeKeywords);
+  await saveExcludeKeywords([]);
   renderExcludeList();
   if (lastResults.length) renderTable(lastResults);
 }
 function downloadExcludeTemplate() {
-  const rows = [
-    ['제외할 키워드'],
-    ['예시1: 농협'],
-    ['예시2: 어버이날'],
-    ['(이 줄과 위 예시 줄을 지우고 키워드를 한 줄에 하나씩 작성하세요)'],
-  ];
+  // 현재 저장된 제외 키워드를 그대로 양식으로 내보냄
+  // 비어있으면 예시 포함, 있으면 실제 키워드 나열
+  const rows = [['제외할 키워드']];
+  if (excludeKeywords.length) {
+    excludeKeywords.forEach(k => rows.push([k]));
+  } else {
+    rows.push(['예시1: 농협']);
+    rows.push(['예시2: 어버이날']);
+    rows.push(['(이 줄과 위 예시 줄을 지우고 키워드를 한 줄에 하나씩 작성하세요)']);
+  }
   downloadCsv('제외_키워드_양식.csv', rows);
 }
 async function uploadExcludeFile(event) {
@@ -1994,23 +2030,25 @@ async function uploadExcludeFile(event) {
   try {
     const text = await readFileAsText(file);
     const lines = parseCsvText(text);
-    // 헤더 행 추정: 첫 줄이 "제외할 키워드" 또는 비슷하면 스킵
+    // 헤더/예시 행 자동 제거
     const filtered = lines.filter((l, i) => {
       if (i === 0 && /제외|키워드|exclude|keyword/i.test(l)) return false;
       if (l.startsWith('예시') || l.startsWith('(')) return false;
       return true;
     });
-    let added = 0;
-    for (const kw of filtered) {
-      if (!excludeKeywords.includes(kw)) {
-        excludeKeywords.push(kw);
-        added++;
-      }
+    const fresh = [...new Set(filtered)];
+    // Excel 을 진실의 원천으로 — 기존 목록을 덮어씀 (Excel 에서 행 삭제하면 DB 에서도 사라짐)
+    if (excludeKeywords.length) {
+      const ok = confirm(
+        `현재 등록된 ${excludeKeywords.length}개 → 파일의 ${fresh.length}개로 덮어씁니다.\n` +
+        `(Excel 에서 삭제한 키워드는 DB 에서도 제거됩니다)\n\n계속할까요?`
+      );
+      if (!ok) { event.target.value = ''; return; }
     }
-    saveExcludeKeywords(excludeKeywords);
+    await saveExcludeKeywords(fresh);
     renderExcludeList();
     if (lastResults.length) renderTable(lastResults);
-    alert(`${added}개 키워드 추가됨 (총 ${excludeKeywords.length}개)`);
+    alert(`제외 키워드 ${fresh.length}개로 갱신되었습니다.`);
   } catch (e) {
     alert('파일 읽기 실패: ' + e.message);
   }
@@ -2562,6 +2600,7 @@ async function addUser(e) {
 checkAuth().then(async ok => {
   if (!ok) return;
   await loadFavoritesData();
+  await fetchExcludeKeywords();
   onCat2Change();
   renderExcludeList();
 });
