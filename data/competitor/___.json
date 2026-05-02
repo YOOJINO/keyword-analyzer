@@ -14630,7 +14630,44 @@
         "2026-05": {}
       },
       "lastQueryDate": null,
-      "thresholds": null,
+      "thresholds": {
+        "month": {
+          "below": {
+            "value": 1000,
+            "color": "red"
+          },
+          "between": {
+            "from": 1001,
+            "to": 9999,
+            "color": "green"
+          },
+          "above": {
+            "value": 10000,
+            "color": "red"
+          }
+        },
+        "daily": {
+          "below": {
+            "value": 1000,
+            "color": "yellow"
+          },
+          "between": {
+            "from": 1001,
+            "to": 9999,
+            "color": "green"
+          },
+          "above": {
+            "value": 10000,
+            "color": "red"
+          }
+        },
+        "growth": {
+          "hot": 50,
+          "up": 20,
+          "flat": -10,
+          "down": -30
+        }
+      },
       "startMonth": "2025-06",
       "endMonth": "2026-05"
     }
