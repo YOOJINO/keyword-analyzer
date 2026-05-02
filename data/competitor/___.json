@@ -14639,7 +14639,7 @@
           "between": {
             "from": 1001,
             "to": 9999,
-            "color": "yellow"
+            "color": "green"
           },
           "above": {
             "value": 10000,
