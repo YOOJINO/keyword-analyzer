@@ -39,7 +39,17 @@ export default async function handler(req, res) {
   }
 
   try {
-    const keywords = hintKeywords || [seed];
+    // Naver 검색광고 API 제약: hintKeywords 는 공백/쉼표/빈 문자열 불가
+    // 공백 제거 → 빈 문자열 제거 → dedup → 최대 5개로 제한
+    const raw = hintKeywords || [seed];
+    const keywords = [...new Set(
+      (Array.isArray(raw) ? raw : [raw])
+        .map(k => String(k || '').replace(/\s+/g, ''))
+        .filter(Boolean)
+    )].slice(0, 5);
+    if (!keywords.length) {
+      return res.status(400).json({ error: '유효한 키워드가 없습니다 (공백 제거 후 비어있음).' });
+    }
     const params = new URLSearchParams({
       hintKeywords: keywords.join(','),
       showDetail: '1',
