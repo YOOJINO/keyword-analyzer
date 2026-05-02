@@ -1032,7 +1032,13 @@ function getSeeds() {
     Object.values(CAT_DATA.diet.sub).forEach(s => s.seeds.forEach(k => all.add(k)));
     return Array.from(all);
   }
-  if (cat4 && cat4 !== '') return [cat4];
+  if (cat4 && cat4 !== '') {
+    // cat4 단독 시드는 "기타건강보조식품" 같은 카테고리 라벨일 경우 결과 0개.
+    // 따라서 cat4 + cat3 시드 모두 합쳐서 보냄 → 넓은 결과 후 cat4 매칭으로 자연 분류
+    const subData = CAT_DATA[cat2]?.sub[cat3];
+    const merged = new Set([cat4, ...(subData?.seeds || [])]);
+    return Array.from(merged);
+  }
   if (cat3 && cat3 !== '') {
     const subData = CAT_DATA[cat2]?.sub[cat3];
     return subData?.seeds || [cat3];
