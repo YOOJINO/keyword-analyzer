@@ -16,6 +16,16 @@
       ],
       "createdAt": "2026-04-30T18:49:35.901Z",
       "password": "dlgPfla"
+    },
+    {
+      "id": "형민",
+      "password": "gudals",
+      "passwordHash": "88ac14bbfc3d5e7494d598722e1e1889:2b864f177297f7014fa23a4680b5dd9a8381bfb8e81eb4e6d8e4d8299d5cd93f7228b71b2ae592b83cdd487d072bab7b124f6472ab0c0cc80bee59a6b0ef9cae",
+      "role": "user",
+      "permissions": [
+        "competitor"
+      ],
+      "createdAt": "2026-05-02T11:45:47.422Z"
     }
   ]
 }
