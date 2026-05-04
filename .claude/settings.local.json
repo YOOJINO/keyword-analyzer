@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip show *)",
+      "Bash(pip install *)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('src/gui/main_window.py', encoding='utf-8'\\).read\\(\\)\\); print\\('OK: syntax valid'\\)\")",
+      "Bash(python -c \"import keyboard, pyautogui, pyperclip; print\\('all imports OK'\\)\")"
+    ]
+  }
+}
