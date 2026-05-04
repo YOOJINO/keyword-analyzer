@@ -4,7 +4,10 @@
       "Bash(pip show *)",
       "Bash(pip install *)",
       "Bash(python -c \"import ast; ast.parse\\(open\\('src/gui/main_window.py', encoding='utf-8'\\).read\\(\\)\\); print\\('OK: syntax valid'\\)\")",
-      "Bash(python -c \"import keyboard, pyautogui, pyperclip; print\\('all imports OK'\\)\")"
+      "Bash(python -c \"import keyboard, pyautogui, pyperclip; print\\('all imports OK'\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('src/gui/main_window.py', encoding='utf-8'\\).read\\(\\)\\); ast.parse\\(open\\('src/gui/shipping_macro_dialog.py', encoding='utf-8'\\).read\\(\\)\\); print\\('OK: both files syntax valid'\\)\")",
+      "Bash(set PYTHONIOENCODING=utf-8)",
+      "Bash(python -c ' *)"
     ]
   }
 }
