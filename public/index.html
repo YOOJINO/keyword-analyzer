@@ -2281,7 +2281,7 @@ function renderRankTable() {
              oninput="rankEdit('${r.id}','url',this.value)"></td>
         <td><input value="${escapeHtml(r.postedAt || '')}" placeholder="게시일"
              oninput="rankEdit('${r.id}','postedAt',this.value)"></td>
-        <td class="rank-cell-ro">${escapeHtml(r.kind || '')}</td>
+        <td class="rank-cell-ro" id="rankkind_${r.id}">${escapeHtml(r.kind || rankKindFromUrl(r.url))}</td>
         <td style="text-align:center;">${rankCell}</td>
         <td class="rank-cell-ro">${escapeHtml(r.title || '')}</td>
         <td class="rank-col-act"><button class="rank-del" onclick="rankDeleteRow('${r.id}')" title="삭제">✕</button></td>
@@ -2331,17 +2331,31 @@ function rankFmtTime(iso) {
   } catch { return iso; }
 }
 
+// URL을 보고 블로그/카페 종류를 자동 판정 (worker/naver_rank.py 의 post_key 와 동일 기준)
+function rankKindFromUrl(url) {
+  const u = (url || '').toLowerCase();
+  if (u.includes('blog.naver.com') || /blogid=/.test(u)) return '블로그';
+  if (u.includes('cafe.naver.com')) return '카페';
+  return '';
+}
+
 function rankEdit(id, field, value) {
   if (!_rankState) return;
   const row = _rankState.rows.find(r => r.id === id);
-  if (row) row[field] = value;
+  if (!row) return;
+  row[field] = value;
+  if (field === 'url') {
+    row.kind = rankKindFromUrl(value);
+    const cell = document.getElementById('rankkind_' + id);
+    if (cell) cell.textContent = row.kind;
+  }
 }
 
 function rankNewRow(keyword, url, postedAt) {
   return {
     id: 'r_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
     keyword: (keyword || '').trim(), url: (url || '').trim(),
-    kind: '', rank: null, title: '', postedAt: (postedAt || '').trim(), checkedAt: null,
+    kind: rankKindFromUrl(url), rank: null, title: '', postedAt: (postedAt || '').trim(), checkedAt: null,
   };
 }
 
