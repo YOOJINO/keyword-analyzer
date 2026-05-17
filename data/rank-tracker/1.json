@@ -1,6 +1,20 @@
 {
   "rows": [
     {
+      "id": "r_1779037250672_u10rm0",
+      "keyword": "안티칼알파",
+      "url": "https://cafe.naver.com/lovehayden/8111433?art=ZXh0ZXJuYWwtc2VydmljZS1uYXZlci1zZWFyY2gtY2FmZS1wcg.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYWZlVHlwZSI6IkNBRkVfVVJMIiwiY2FmZVVybCI6ImxvdmVoYXlkZW4iLCJhcnRpY2xlSWQiOjgxMTE0MzMsImlzc3VlZEF0IjoxNzc5MDM1MTc4NDM1fQ.R4EO7-xrTssRi04SIOwv4VfGi03rgy8h1o0LDBlGHUY",
+      "kind": "카페",
+      "rank": 2,
+      "title": "안티칼 알파 경험담 알려주세요",
+      "postedAt": "2026-05-13",
+      "checkedAt": "2026-05-17T18:13:35.022Z",
+      "likeCount": 0,
+      "commentCount": 22,
+      "viewCount": 240,
+      "exposed": null
+    },
+    {
       "id": "r_1779037069576_d2tlbj",
       "keyword": "안티칼알파",
       "url": "https://blog.naver.com/becky101/224261725721",
@@ -11,20 +25,6 @@
       "checkedAt": "2026-05-17T18:13:35.022Z",
       "likeCount": 25,
       "commentCount": 0,
-      "viewCount": null,
-      "exposed": null
-    },
-    {
-      "id": "r_1779037223965_icrzj6",
-      "keyword": "안티칼알파",
-      "url": "https://blog.naver.com/3_taste/224282189189",
-      "kind": "블로그",
-      "rank": 6,
-      "title": "안티칼 알파 내돈내산 효과 후기 1달 반-10kg 감량 유지 비법!",
-      "postedAt": "2026-05-12",
-      "checkedAt": "2026-05-17T18:13:35.022Z",
-      "likeCount": 19,
-      "commentCount": 1,
       "viewCount": null,
       "exposed": null
     },
@@ -43,17 +43,17 @@
       "exposed": null
     },
     {
-      "id": "r_1779037250672_u10rm0",
+      "id": "r_1779037223965_icrzj6",
       "keyword": "안티칼알파",
-      "url": "https://cafe.naver.com/lovehayden/8111433?art=ZXh0ZXJuYWwtc2VydmljZS1uYXZlci1zZWFyY2gtY2FmZS1wcg.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYWZlVHlwZSI6IkNBRkVfVVJMIiwiY2FmZVVybCI6ImxvdmVoYXlkZW4iLCJhcnRpY2xlSWQiOjgxMTE0MzMsImlzc3VlZEF0IjoxNzc5MDM1MTc4NDM1fQ.R4EO7-xrTssRi04SIOwv4VfGi03rgy8h1o0LDBlGHUY",
-      "kind": "카페",
-      "rank": 2,
-      "title": "안티칼 알파 경험담 알려주세요",
-      "postedAt": "2026-05-13",
+      "url": "https://blog.naver.com/3_taste/224282189189",
+      "kind": "블로그",
+      "rank": 6,
+      "title": "안티칼 알파 내돈내산 효과 후기 1달 반-10kg 감량 유지 비법!",
+      "postedAt": "2026-05-12",
       "checkedAt": "2026-05-17T18:13:35.022Z",
-      "likeCount": 0,
-      "commentCount": 22,
-      "viewCount": 240,
+      "likeCount": 19,
+      "commentCount": 1,
+      "viewCount": null,
       "exposed": null
     },
     {
