@@ -407,7 +407,9 @@ body.view-rank #resultArea{display:none !important;}
 .rank-btn.green{background:var(--green);color:#fff;border-color:var(--green);}
 .rank-btn.green:hover{background:#009a59;}
 .rankreset-checks{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;margin:14px 0 4px;}
-.rank-more-bar{margin-top:10px;}
+.rank-more-bar{display:flex;align-items:center;gap:10px;margin-top:10px;}
+.rank-search{flex:0 1 340px;padding:7px 11px;border:1px solid var(--gray-3);border-radius:6px;font-size:13px;color:var(--gray-7);}
+.rank-search:focus{outline:none;border-color:var(--blue);}
 .rank-more{display:flex;gap:40px;margin-top:10px;padding:14px 16px;background:var(--gray-1);border-radius:8px;flex-wrap:wrap;}
 .rank-more-col{display:flex;flex-direction:column;gap:8px;}
 .rank-more-label{font-size:12px;font-weight:700;color:var(--gray-7);margin-bottom:2px;}
@@ -704,7 +706,7 @@ body.view-rank #resultArea{display:none !important;}
         <span class="rank-job idle" id="rankJobBadge">대기 없음</span>
         <span class="rank-hint" id="rankCheckedAt"></span>
         <span style="margin-left:auto;"></span>
-        <button class="rank-btn" onclick="openRankAddModal()">+ 행 추가</button>
+        <button class="rank-btn" onclick="openRankAddModal()">추가</button>
         <button class="rank-btn" id="rankSaveBtn" onclick="saveRank(true)">저장</button>
         <button class="rank-btn" id="rankResetBtn" onclick="openRankResetModal()">초기화</button>
         <button class="rank-btn primary" id="rankRefreshBtn" onclick="loadRankData()">새로고침</button>
@@ -714,7 +716,9 @@ body.view-rank #resultArea{display:none !important;}
         키워드와 URL을 입력해 두면, 확장프로그램 '상위노출 추적' 탭이 네이버 통합검색을 확인해 순위·제목을 채웁니다. 채워진 결과는 <b>새로고침</b>으로 불러옵니다.
       </div>
       <div class="rank-more-bar">
-        <button class="rank-btn" id="rankMoreBtn" onclick="toggleRankMore()">더보기 ▾</button>
+        <input type="text" id="rankSearch" class="rank-search"
+          placeholder="🔍 통합 검색 (키워드·URL·종류·게시일·제목 등)" oninput="renderRankTable()">
+        <button class="rank-btn" id="rankMoreBtn" style="margin-left:auto;" onclick="toggleRankMore()">더보기 ▾</button>
       </div>
       <div class="rank-more" id="rankMorePanel" style="display:none;">
         <div class="rank-more-col">
@@ -2450,6 +2454,17 @@ function rankCellHtml(col, r) {
   return `<td class="rank-num">${disp}</td>`;
 }
 
+// 통합 검색 — 행의 모든 항목을 합쳐 검색어 포함 여부 판정
+function rankRowMatches(r, q) {
+  const parts = [
+    r.keyword, r.url, r.kind || rankKindFromUrl(r.url), r.postedAt, r.title,
+    r.rank, r.likeCount, r.commentCount, r.viewCount, r.exposed,
+  ];
+  let hay = '';
+  for (const v of parts) hay += (v == null ? '' : String(v)) + ' ';
+  return hay.toLowerCase().indexOf(q) >= 0;
+}
+
 function renderRankTable() {
   const area = document.getElementById('rankTableArea');
   if (!_rankState) return;
@@ -2459,11 +2474,17 @@ function renderRankTable() {
   const cols = RANK_COLS.filter(c => !(c.hideable && hidden.includes(c.key)));
   const span = cols.length + 1;
 
+  const searchEl = document.getElementById('rankSearch');
+  const q = (searchEl ? searchEl.value : '').trim().toLowerCase();
+  const shown = q ? rows.filter(r => rankRowMatches(r, q)) : rows;
+
   let body;
   if (!rows.length) {
-    body = `<tr><td colspan="${span}" class="rank-empty">+ 행 추가 버튼으로 키워드와 URL을 입력하세요</td></tr>`;
+    body = `<tr><td colspan="${span}" class="rank-empty">추가 버튼으로 키워드와 URL을 입력하세요</td></tr>`;
+  } else if (!shown.length) {
+    body = `<tr><td colspan="${span}" class="rank-empty">검색 결과가 없습니다</td></tr>`;
   } else {
-    body = rows.map(r => {
+    body = shown.map(r => {
       const cells = cols.map(c => rankCellHtml(c, r)).join('');
       return `<tr>${cells}<td class="rank-col-act"><button class="rank-del" onclick="rankDeleteRow('${r.id}')" title="삭제">✕</button></td></tr>`;
     }).join('');
