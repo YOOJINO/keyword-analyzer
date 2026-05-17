@@ -406,6 +406,7 @@ body.view-rank #resultArea{display:none !important;}
 .rank-btn.primary:hover{background:var(--blue-mid);}
 .rank-btn.green{background:var(--green);color:#fff;border-color:var(--green);}
 .rank-btn.green:hover{background:#009a59;}
+.rankreset-checks{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;margin:14px 0 4px;}
 .rank-btn:disabled{opacity:.5;cursor:not-allowed;}
 .rank-job{font-size:12px;font-weight:600;padding:4px 11px;border-radius:999px;}
 .rank-job.idle{background:var(--gray-2);color:var(--gray-6);}
@@ -699,7 +700,7 @@ body.view-rank #resultArea{display:none !important;}
         <span style="margin-left:auto;"></span>
         <button class="rank-btn" onclick="openRankAddModal()">+ 행 추가</button>
         <button class="rank-btn" id="rankSaveBtn" onclick="saveRank(true)">저장</button>
-        <button class="rank-btn" id="rankResetBtn" onclick="resetRankRanks()">순위 초기화</button>
+        <button class="rank-btn" id="rankResetBtn" onclick="openRankResetModal()">초기화</button>
         <button class="rank-btn primary" id="rankRefreshBtn" onclick="loadRankData()">새로고침</button>
         <button class="rank-btn green" id="rankExcelBtn" onclick="downloadRankExcel()">엑셀 다운</button>
       </div>
@@ -810,6 +811,30 @@ body.view-rank #resultArea{display:none !important;}
         <div class="rankm-actions">
           <button class="rank-btn primary" onclick="rankAddMulti()">모두 추가</button>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 상위노출 추적 — 초기화 모달 -->
+<div class="modal-bg" id="rankResetModal" onclick="if(event.target===this)closeRankResetModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">초기화할 항목 선택</span>
+      <button class="modal-close" onclick="closeRankResetModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="rankm-hint">체크한 항목만 모든 행에서 비웁니다. 키워드·URL·게시일·종류는 영향받지 않습니다.</div>
+      <div class="rankreset-checks">
+        <label class="vo-check"><input type="checkbox" data-resetfield="rank" checked> 상위노출 순위</label>
+        <label class="vo-check"><input type="checkbox" data-resetfield="title"> 제목</label>
+        <label class="vo-check"><input type="checkbox" data-resetfield="likeCount"> 공감수</label>
+        <label class="vo-check"><input type="checkbox" data-resetfield="commentCount"> 댓글수</label>
+        <label class="vo-check"><input type="checkbox" data-resetfield="viewCount"> 조회수</label>
+        <label class="vo-check"><input type="checkbox" data-resetfield="exposed"> 노출</label>
+      </div>
+      <div class="rankm-actions">
+        <button class="rank-btn primary" onclick="applyRankReset()">선택 항목 초기화</button>
       </div>
     </div>
   </div>
@@ -2449,17 +2474,33 @@ async function saveRank(notify) {
   }
 }
 
-// 순위만 초기화 — 오직 rank 값만 비운다.
-// 제목·종류·게시일·공감수·댓글수·조회수·노출·확인시각 등 나머지는 모두 그대로.
-async function resetRankRanks() {
+// 초기화 모달 — 체크한 항목만 모든 행에서 비운다.
+function openRankResetModal() {
   if (!_rankState || !(_rankState.rows || []).length) {
     alert('초기화할 데이터가 없습니다.');
     return;
   }
-  if (!confirm('모든 행의 순위만 초기화합니다.\n(제목·공감수 등 나머지 값은 그대로 유지) 계속할까요?')) return;
+  document.getElementById('rankResetModal').classList.add('open');
+}
+
+function closeRankResetModal() {
+  document.getElementById('rankResetModal').classList.remove('open');
+}
+
+async function applyRankReset() {
+  if (!_rankState) return;
+  const fields = [];
+  document.querySelectorAll('#rankResetModal [data-resetfield]').forEach(cb => {
+    if (cb.checked) fields.push(cb.dataset.resetfield);
+  });
+  if (!fields.length) { alert('초기화할 항목을 하나 이상 선택하세요.'); return; }
+  // 빈 값 기준: 순위·각 수치·노출은 null, 제목은 빈 문자열
+  const EMPTY = { rank: null, title: '', likeCount: null, commentCount: null,
+                  viewCount: null, exposed: null };
   for (const r of _rankState.rows) {
-    r.rank = null;
+    for (const f of fields) r[f] = EMPTY[f];
   }
+  closeRankResetModal();
   renderRankTable();
   await saveRank(true);
 }
