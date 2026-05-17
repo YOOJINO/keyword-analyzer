@@ -49,7 +49,8 @@
       "PowerShell(python -c \"import pyperclip; print\\('pyperclip OK'\\)\")",
       "PowerShell(python -c \"from PIL import Image; print\\('PIL OK'\\)\")",
       "PowerShell(python -c \"import xlsxwriter; print\\('xlsxwriter OK'\\)\")",
-      "PowerShell(pip install Pillow)"
+      "PowerShell(pip install Pillow)",
+      "PowerShell(\\(Get-Content \"C:\\\\Users\\\\유진오\\\\Documents\\\\GitHub\\\\viral-marketing-lab\\\\public\\\\index.html\" | Measure-Object -Line\\).Lines)"
     ],
     "additionalDirectories": [
       "g:\\내 드라이브\\1. 구매대행\\1.4 기타\\1. SW\\002 소싱\\소싱 관련 프로그램",
