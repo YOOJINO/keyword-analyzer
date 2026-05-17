@@ -436,6 +436,8 @@ body.view-rank #resultArea{display:none !important;}
 .rank-empty{text-align:center;padding:40px 20px;color:var(--gray-5);font-size:13px;}
 .rank-col-no{width:42px;text-align:center;color:var(--gray-5);}
 .rank-col-act{width:44px;text-align:center;}
+.rank-col-chk{width:34px;text-align:center;}
+.rank-col-chk input{cursor:pointer;}
 .rank-cell-ro{word-break:break-word;}
 .rankm-label{font-size:13px;font-weight:700;color:var(--gray-7);margin-bottom:8px;}
 .rankm-hint{font-size:12px;color:var(--gray-5);margin-bottom:8px;line-height:1.5;}
@@ -714,7 +716,9 @@ body.view-rank #resultArea{display:none !important;}
       <div class="rank-more-bar">
         <input type="text" id="rankSearch" class="rank-search"
           placeholder="검색" oninput="renderRankTable()">
-        <button class="rank-btn" id="rankEditBtn" style="margin-left:auto;" onclick="toggleEditMode()">편집모드</button>
+        <span style="flex:1;"></span>
+        <button class="rank-btn" id="rankDelSelBtn" style="display:none;" onclick="deleteSelectedRows()">선택 삭제</button>
+        <button class="rank-btn" id="rankEditBtn" onclick="toggleEditMode()">편집모드</button>
       </div>
       <div class="rank-more" id="rankMorePanel" style="display:none;">
         <div class="rank-more-col">
@@ -2329,6 +2333,7 @@ let _rankState = null;          // { rows:[...], job:{...} }
 let _rankPollTimer = null;
 let _rankEditMode = false;      // 편집모드 — 켜면 행 삭제 + 정렬·숨기기 패널 표시
 let _rankPrefsLoaded = false;   // 정렬·숨기기 설정을 한 번만 불러오기 위한 플래그
+const _rankSelected = new Set(); // 편집모드에서 체크된 행 id
 
 const RANK_JOB_LABEL = {
   idle: '대기 없음', pending: '크롤링 대기 중',
@@ -2377,6 +2382,8 @@ function toggleEditMode() {
   const btn = document.getElementById('rankEditBtn');
   btn.classList.toggle('primary', _rankEditMode);
   btn.textContent = _rankEditMode ? '편집 완료' : '편집모드';
+  document.getElementById('rankDelSelBtn').style.display = _rankEditMode ? '' : 'none';
+  _rankSelected.clear();
   renderRankTable();
   if (!_rankEditMode) {
     saveRankPrefs();      // 정렬·숨기기 설정 (브라우저에 저장)
@@ -2502,6 +2509,45 @@ function rankRowMatches(r, q) {
   return hay.toLowerCase().indexOf(q) >= 0;
 }
 
+// 검색·정렬이 반영된 '화면에 보이는' 행 목록
+function rankShownRows() {
+  const rows = (_rankState && _rankState.rows) || [];
+  const searchEl = document.getElementById('rankSearch');
+  const q = (searchEl ? searchEl.value : '').trim().toLowerCase();
+  return q ? rows.filter(r => rankRowMatches(r, q)) : rows;
+}
+
+// 전체 선택 / 전체 해제 (체크박스 열 머리)
+function toggleSelectAll(checked) {
+  const shown = rankShownRows();
+  if (checked) shown.forEach(r => _rankSelected.add(r.id));
+  else shown.forEach(r => _rankSelected.delete(r.id));
+  renderRankTable();
+}
+
+// 한 행 선택/해제
+function toggleRowSelect(id, checked) {
+  if (checked) _rankSelected.add(id);
+  else _rankSelected.delete(id);
+  const all = document.getElementById('rankSelectAll');
+  if (all) {
+    const shown = rankShownRows();
+    all.checked = shown.length > 0 && shown.every(r => _rankSelected.has(r.id));
+  }
+}
+
+// 선택된 행 일괄 삭제
+async function deleteSelectedRows() {
+  if (!_rankState) return;
+  const n = (_rankState.rows || []).filter(r => _rankSelected.has(r.id)).length;
+  if (!n) { alert('삭제할 행을 선택하세요.'); return; }
+  if (!confirm(n + '개 행을 삭제할까요?')) return;
+  _rankState.rows = _rankState.rows.filter(r => !_rankSelected.has(r.id));
+  _rankSelected.clear();
+  renderRankTable();
+  await saveRank(true);
+}
+
 function renderRankTable() {
   const area = document.getElementById('rankTableArea');
   if (!_rankState) return;
@@ -2509,11 +2555,16 @@ function renderRankTable() {
   const rows = _rankState.rows || [];
   const hidden = rankHiddenCols();
   const cols = RANK_COLS.filter(c => !(c.hideable && hidden.includes(c.key)));
-  const span = cols.length + (_rankEditMode ? 1 : 0);
+  const edit = _rankEditMode;
+  const span = cols.length + (edit ? 1 : 0);
+  const shown = rankShownRows();
 
-  const searchEl = document.getElementById('rankSearch');
-  const q = (searchEl ? searchEl.value : '').trim().toLowerCase();
-  const shown = q ? rows.filter(r => rankRowMatches(r, q)) : rows;
+  // 체크박스 열 (편집모드에서 맨 왼쪽) — 머리 체크박스 = 전체 선택/해제
+  const allChecked = shown.length > 0 && shown.every(r => _rankSelected.has(r.id));
+  const chkCol = edit ? '<col style="width:34px">' : '';
+  const chkTh = edit
+    ? `<th class="rank-col-chk"><input type="checkbox" id="rankSelectAll" ${allChecked ? 'checked' : ''} onchange="toggleSelectAll(this.checked)"></th>`
+    : '';
 
   let body;
   if (!rows.length) {
@@ -2522,17 +2573,15 @@ function renderRankTable() {
     body = `<tr><td colspan="${span}" class="rank-empty">검색 결과가 없습니다</td></tr>`;
   } else {
     body = shown.map(r => {
-      const cells = cols.map(c => rankCellHtml(c, r)).join('');
-      const act = _rankEditMode
-        ? `<td class="rank-col-act"><button class="rank-del" onclick="rankDeleteRow('${r.id}')" title="삭제">✕</button></td>`
+      const chkTd = edit
+        ? `<td class="rank-col-chk"><input type="checkbox" class="rank-rowchk" ${_rankSelected.has(r.id) ? 'checked' : ''} onchange="toggleRowSelect('${r.id}',this.checked)"></td>`
         : '';
-      return `<tr>${cells}${act}</tr>`;
+      const cells = cols.map(c => rankCellHtml(c, r)).join('');
+      return `<tr>${chkTd}${cells}</tr>`;
     }).join('');
   }
-  const colg = cols.map(c => `<col style="width:${c.w}px">`).join('') +
-    (_rankEditMode ? '<col style="width:44px">' : '');
-  const thead = cols.map(c => `<th>${escapeHtml(c.title)}</th>`).join('') +
-    (_rankEditMode ? '<th class="rank-col-act"></th>' : '');
+  const colg = chkCol + cols.map(c => `<col style="width:${c.w}px">`).join('');
+  const thead = chkTh + cols.map(c => `<th>${escapeHtml(c.title)}</th>`).join('');
 
   area.innerHTML = `<table class="rank-table">
     <colgroup>${colg}</colgroup>
