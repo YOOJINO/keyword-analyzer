@@ -424,7 +424,7 @@ body.view-rank #resultArea{display:none !important;}
 .rank-job.error{background:var(--red-light);color:var(--red);}
 .rank-table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed;}
 .rank-table th,.rank-table td{border:1px solid var(--gray-2);padding:7px 9px;text-align:left;vertical-align:middle;}
-.rank-table th{background:var(--gray-1);font-weight:600;color:var(--gray-6);white-space:nowrap;}
+.rank-table th{background:var(--gray-1);font-weight:600;color:var(--gray-6);white-space:nowrap;text-align:center;}
 .rank-table input{width:100%;border:none;background:transparent;font:inherit;font-size:13px;padding:3px;outline:none;border-radius:4px;}
 .rank-table input:focus{background:var(--blue-light);}
 .rank-cell-ro{color:var(--gray-6);}
@@ -713,7 +713,7 @@ body.view-rank #resultArea{display:none !important;}
       </div>
       <div class="rank-more-bar">
         <input type="text" id="rankSearch" class="rank-search"
-          placeholder="검색창" oninput="renderRankTable()">
+          placeholder="검색" oninput="renderRankTable()">
         <button class="rank-btn" id="rankEditBtn" style="margin-left:auto;" onclick="toggleEditMode()">편집모드</button>
       </div>
       <div class="rank-more" id="rankMorePanel" style="display:none;">
@@ -2328,6 +2328,7 @@ function escapeAttr(s) {
 let _rankState = null;          // { rows:[...], job:{...} }
 let _rankPollTimer = null;
 let _rankEditMode = false;      // 편집모드 — 켜면 행 삭제 + 정렬·숨기기 패널 표시
+let _rankPrefsLoaded = false;   // 정렬·숨기기 설정을 한 번만 불러오기 위한 플래그
 
 const RANK_JOB_LABEL = {
   idle: '대기 없음', pending: '크롤링 대기 중',
@@ -2335,6 +2336,7 @@ const RANK_JOB_LABEL = {
 };
 
 async function loadRankData() {
+  if (!_rankPrefsLoaded) { loadRankPrefs(); _rankPrefsLoaded = true; }
   const area = document.getElementById('rankTableArea');
   area.innerHTML = '<div class="rank-empty">로딩 중…</div>';
   try {
@@ -2367,7 +2369,8 @@ const RANK_COLS = [
 ];
 const RANK_NUMERIC = ['rank', 'likeCount', 'commentCount', 'viewCount'];
 
-// 편집모드 토글 — 켜면 정렬·숨기기 패널이 열리고 행 삭제 버튼이 나타난다
+// 편집모드 토글 — 켜면 정렬·숨기기 패널이 열리고 행 삭제 버튼이 나타난다.
+// 끌 때(편집 완료)는 정렬·숨기기 설정과 행 변경사항을 저장한다.
 function toggleEditMode() {
   _rankEditMode = !_rankEditMode;
   document.getElementById('rankMorePanel').style.display = _rankEditMode ? 'flex' : 'none';
@@ -2375,6 +2378,41 @@ function toggleEditMode() {
   btn.classList.toggle('primary', _rankEditMode);
   btn.textContent = _rankEditMode ? '편집 완료' : '편집모드';
   renderRankTable();
+  if (!_rankEditMode) {
+    saveRankPrefs();      // 정렬·숨기기 설정 (브라우저에 저장)
+    saveRank(true);       // 행 추가·삭제·수정·정렬 순서 (서버에 저장)
+  }
+}
+
+// 정렬 우선순위·숨기기 설정을 브라우저(localStorage)에 저장
+function saveRankPrefs() {
+  try {
+    const sort = [];
+    for (let i = 1; i <= 3; i++) {
+      const colEl = document.getElementById('rankSort' + i);
+      const dirEl = document.getElementById('rankSortDir' + i);
+      sort.push({ key: colEl ? colEl.value : '', dir: dirEl ? dirEl.value : 'asc' });
+    }
+    localStorage.setItem('rankViewPrefs', JSON.stringify({ sort, hidden: rankHiddenCols() }));
+  } catch (_) {}
+}
+
+// 저장해 둔 정렬·숨기기 설정을 화면 컨트롤에 반영
+function loadRankPrefs() {
+  try {
+    const prefs = JSON.parse(localStorage.getItem('rankViewPrefs') || 'null');
+    if (!prefs) return;
+    (prefs.sort || []).forEach((s, idx) => {
+      const colEl = document.getElementById('rankSort' + (idx + 1));
+      const dirEl = document.getElementById('rankSortDir' + (idx + 1));
+      if (colEl && s.key != null) colEl.value = s.key;
+      if (dirEl && s.dir) dirEl.value = s.dir;
+    });
+    const hidden = prefs.hidden || [];
+    document.querySelectorAll('#rankMorePanel [data-hidecol]').forEach(cb => {
+      cb.checked = hidden.indexOf(cb.dataset.hidecol) < 0;
+    });
+  } catch (_) {}
 }
 
 // 체크 해제된 '숨기기' 열 목록
