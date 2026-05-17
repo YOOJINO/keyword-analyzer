@@ -25,7 +25,7 @@ export default async function handler(req, res) {
         password: bootPass,
         passwordHash: hashPassword(bootPass),
         role: 'admin',
-        permissions: ['category', 'keyword', 'competitor'],
+        permissions: ['category', 'keyword', 'competitor', 'rank'],
         createdAt: new Date().toISOString(),
       };
       data.users.push(newAdmin);
@@ -47,7 +47,7 @@ export default async function handler(req, res) {
       await saveUsers(data, `Backfill plaintext password for ${user.id}`);
     }
 
-    const permissions = user.role === 'admin' ? ['category', 'keyword', 'competitor'] : (user.permissions || []);
+    const permissions = user.role === 'admin' ? ['category', 'keyword', 'competitor', 'rank'] : (user.permissions || []);
     const token = signToken({ id: user.id, role: user.role, permissions });
     setAuthCookie(res, token);
     return res.status(200).json({ ok: true, user: { id: user.id, role: user.role, permissions } });
