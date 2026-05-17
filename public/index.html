@@ -407,6 +407,12 @@ body.view-rank #resultArea{display:none !important;}
 .rank-btn.green{background:var(--green);color:#fff;border-color:var(--green);}
 .rank-btn.green:hover{background:#009a59;}
 .rankreset-checks{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;margin:14px 0 4px;}
+.rank-more-bar{margin-top:10px;}
+.rank-more{display:flex;gap:40px;margin-top:10px;padding:14px 16px;background:var(--gray-1);border-radius:8px;flex-wrap:wrap;}
+.rank-more-col{display:flex;flex-direction:column;gap:8px;}
+.rank-more-label{font-size:12px;font-weight:700;color:var(--gray-7);margin-bottom:2px;}
+.rank-sort-row{display:flex;gap:8px;}
+.rank-more select{padding:6px 8px;border:1px solid var(--gray-3);border-radius:6px;font-size:13px;color:var(--gray-7);background:var(--white);}
 .rank-btn:disabled{opacity:.5;cursor:not-allowed;}
 .rank-job{font-size:12px;font-weight:600;padding:4px 11px;border-radius:999px;}
 .rank-job.idle{background:var(--gray-2);color:var(--gray-6);}
@@ -706,6 +712,61 @@ body.view-rank #resultArea{display:none !important;}
       </div>
       <div class="rank-hint" style="margin-top:8px;">
         키워드와 URL을 입력해 두면, 확장프로그램 '상위노출 추적' 탭이 네이버 통합검색을 확인해 순위·제목을 채웁니다. 채워진 결과는 <b>새로고침</b>으로 불러옵니다.
+      </div>
+      <div class="rank-more-bar">
+        <button class="rank-btn" id="rankMoreBtn" onclick="toggleRankMore()">더보기 ▾</button>
+      </div>
+      <div class="rank-more" id="rankMorePanel" style="display:none;">
+        <div class="rank-more-col">
+          <div class="rank-more-label">정렬 우선순위</div>
+          <div class="rank-sort-row">
+            <select id="rankSort1" onchange="renderRankTable()">
+              <option value="">(없음)</option>
+              <option value="keyword">키워드</option><option value="url">URL</option>
+              <option value="kind">종류</option><option value="postedAt">게시일</option>
+              <option value="rank">상위노출 순위</option><option value="title">제목</option>
+              <option value="likeCount">공감수</option><option value="commentCount">댓글수</option>
+              <option value="viewCount">조회수</option><option value="exposed">노출</option>
+            </select>
+            <select id="rankSortDir1" onchange="renderRankTable()">
+              <option value="asc">오름차순</option><option value="desc">내림차순</option>
+            </select>
+          </div>
+          <div class="rank-sort-row">
+            <select id="rankSort2" onchange="renderRankTable()">
+              <option value="">(없음)</option>
+              <option value="keyword">키워드</option><option value="url">URL</option>
+              <option value="kind">종류</option><option value="postedAt">게시일</option>
+              <option value="rank">상위노출 순위</option><option value="title">제목</option>
+              <option value="likeCount">공감수</option><option value="commentCount">댓글수</option>
+              <option value="viewCount">조회수</option><option value="exposed">노출</option>
+            </select>
+            <select id="rankSortDir2" onchange="renderRankTable()">
+              <option value="asc">오름차순</option><option value="desc">내림차순</option>
+            </select>
+          </div>
+          <div class="rank-sort-row">
+            <select id="rankSort3" onchange="renderRankTable()">
+              <option value="">(없음)</option>
+              <option value="keyword">키워드</option><option value="url">URL</option>
+              <option value="kind">종류</option><option value="postedAt">게시일</option>
+              <option value="rank">상위노출 순위</option><option value="title">제목</option>
+              <option value="likeCount">공감수</option><option value="commentCount">댓글수</option>
+              <option value="viewCount">조회수</option><option value="exposed">노출</option>
+            </select>
+            <select id="rankSortDir3" onchange="renderRankTable()">
+              <option value="asc">오름차순</option><option value="desc">내림차순</option>
+            </select>
+          </div>
+        </div>
+        <div class="rank-more-col">
+          <div class="rank-more-label">숨기기</div>
+          <label class="vo-check"><input type="checkbox" data-hidecol="title" checked onchange="renderRankTable()"> 제목</label>
+          <label class="vo-check"><input type="checkbox" data-hidecol="likeCount" checked onchange="renderRankTable()"> 공감수</label>
+          <label class="vo-check"><input type="checkbox" data-hidecol="commentCount" checked onchange="renderRankTable()"> 댓글수</label>
+          <label class="vo-check"><input type="checkbox" data-hidecol="viewCount" checked onchange="renderRankTable()"> 조회수</label>
+          <label class="vo-check"><input type="checkbox" data-hidecol="exposed" checked onchange="renderRankTable()"> 노출</label>
+        </div>
       </div>
     </div></div>
     <div class="card"><div class="card-body" style="padding:0;overflow:auto;">
@@ -2290,51 +2351,129 @@ async function loadRankData() {
   }
 }
 
+// 표 열 정의 — hideable 인 열만 '숨기기'로 끌 수 있다
+const RANK_COLS = [
+  { key: 'keyword',      title: '키워드',        w: 96,  hideable: false },
+  { key: 'url',          title: 'URL',           w: 120, hideable: false },
+  { key: 'kind',         title: '종류',          w: 62,  hideable: false },
+  { key: 'postedAt',     title: '게시일',        w: 96,  hideable: false },
+  { key: 'rank',         title: '상위노출 순위', w: 100, hideable: false },
+  { key: 'title',        title: '제목',          w: 373, hideable: true },
+  { key: 'likeCount',    title: '공감수',        w: 72,  hideable: true },
+  { key: 'commentCount', title: '댓글수',        w: 72,  hideable: true },
+  { key: 'viewCount',    title: '조회수',        w: 72,  hideable: true },
+  { key: 'exposed',      title: '노출',          w: 72,  hideable: true },
+];
+const RANK_NUMERIC = ['rank', 'likeCount', 'commentCount', 'viewCount'];
+
+// '더보기' 패널 토글
+function toggleRankMore() {
+  const p = document.getElementById('rankMorePanel');
+  const open = p.style.display === 'none';
+  p.style.display = open ? 'flex' : 'none';
+  document.getElementById('rankMoreBtn').textContent = open ? '더보기 ▴' : '더보기 ▾';
+}
+
+// 체크 해제된 '숨기기' 열 목록
+function rankHiddenCols() {
+  const hidden = [];
+  document.querySelectorAll('#rankMorePanel [data-hidecol]').forEach(cb => {
+    if (!cb.checked) hidden.push(cb.dataset.hidecol);
+  });
+  return hidden;
+}
+
+// 정렬 우선순위 1·2·3 (열 + 오름/내림차순)으로 행을 정렬
+function sortRankRows() {
+  if (!_rankState || !Array.isArray(_rankState.rows)) return;
+  const specs = [];
+  for (let i = 1; i <= 3; i++) {
+    const colEl = document.getElementById('rankSort' + i);
+    const dirEl = document.getElementById('rankSortDir' + i);
+    const key = colEl ? colEl.value : '';
+    if (key) specs.push({ key, dir: (dirEl && dirEl.value === 'desc') ? -1 : 1 });
+  }
+  if (!specs.length) return;
+  const valOf = (r, k) => (k === 'kind' ? (r.kind || rankKindFromUrl(r.url)) : r[k]);
+  _rankState.rows.sort((a, b) => {
+    for (const sp of specs) {
+      const k = sp.key;
+      let cmp;
+      if (RANK_NUMERIC.includes(k)) {
+        const av = valOf(a, k), bv = valOf(b, k);
+        const ae = (av == null || av === ''), be = (bv == null || bv === '');
+        // 빈 값은 정렬 방향과 무관하게 항상 맨 뒤
+        if (ae && be) cmp = 0;
+        else if (ae) return 1;
+        else if (be) return -1;
+        else cmp = Number(av) - Number(bv);
+      } else {
+        const av = valOf(a, k), bv = valOf(b, k);
+        cmp = String(av == null ? '' : av).localeCompare(String(bv == null ? '' : bv), 'ko');
+      }
+      if (cmp) return cmp * sp.dir;
+    }
+    return 0;
+  });
+}
+
+// 한 셀의 HTML
+function rankCellHtml(col, r) {
+  if (col.key === 'keyword') {
+    return `<td><input value="${escapeHtml(r.keyword)}" placeholder="키워드"
+      oninput="rankEdit('${r.id}','keyword',this.value)"></td>`;
+  }
+  if (col.key === 'url') {
+    return `<td><input value="${escapeHtml(r.url)}" placeholder="https://blog.naver.com/..."
+      oninput="rankEdit('${r.id}','url',this.value)"></td>`;
+  }
+  if (col.key === 'postedAt') {
+    return `<td><input value="${escapeHtml(r.postedAt || '')}" placeholder="게시일"
+      oninput="rankEdit('${r.id}','postedAt',this.value)"></td>`;
+  }
+  if (col.key === 'kind') {
+    return `<td class="rank-cell-ro" id="rankkind_${r.id}">${escapeHtml(r.kind || rankKindFromUrl(r.url))}</td>`;
+  }
+  if (col.key === 'rank') {
+    let c;
+    if (r.rank && r.rank > 0) c = `<span class="rank-badge">${r.rank}</span>`;
+    else if (r.checkedAt) c = '<span class="rank-none">노출 없음</span>';
+    else c = '<span class="rank-none">—</span>';
+    return `<td style="text-align:center;">${c}</td>`;
+  }
+  if (col.key === 'title') {
+    return `<td class="rank-cell-ro">${escapeHtml(r.title || '')}</td>`;
+  }
+  // likeCount / commentCount / viewCount / exposed
+  const v = r[col.key];
+  const disp = (v == null || v === '') ? '<span class="rank-none">—</span>' : escapeHtml(String(v));
+  return `<td class="rank-num">${disp}</td>`;
+}
+
 function renderRankTable() {
   const area = document.getElementById('rankTableArea');
   if (!_rankState) return;
+  sortRankRows();
   const rows = _rankState.rows || [];
+  const hidden = rankHiddenCols();
+  const cols = RANK_COLS.filter(c => !(c.hideable && hidden.includes(c.key)));
+  const span = cols.length + 1;
+
   let body;
-  // 공감수·댓글수·조회수 — 확장프로그램 크롤러가 채우는 값. 없으면 — 표시
-  const numCell = v => (v == null || v === '') ? '<span class="rank-none">—</span>' : String(v);
   if (!rows.length) {
-    body = '<tr><td colspan="11" class="rank-empty">+ 행 추가 버튼으로 키워드와 URL을 입력하세요</td></tr>';
+    body = `<tr><td colspan="${span}" class="rank-empty">+ 행 추가 버튼으로 키워드와 URL을 입력하세요</td></tr>`;
   } else {
-    body = rows.map((r, i) => {
-      let rankCell;
-      if (r.rank && r.rank > 0) rankCell = `<span class="rank-badge">${r.rank}</span>`;
-      else if (r.checkedAt) rankCell = '<span class="rank-none">노출 없음</span>';
-      else rankCell = '<span class="rank-none">—</span>';
-      return `<tr>
-        <td><input value="${escapeHtml(r.keyword)}" placeholder="키워드"
-             oninput="rankEdit('${r.id}','keyword',this.value)"></td>
-        <td><input value="${escapeHtml(r.url)}" placeholder="https://blog.naver.com/..."
-             oninput="rankEdit('${r.id}','url',this.value)"></td>
-        <td class="rank-cell-ro" id="rankkind_${r.id}">${escapeHtml(r.kind || rankKindFromUrl(r.url))}</td>
-        <td><input value="${escapeHtml(r.postedAt || '')}" placeholder="게시일"
-             oninput="rankEdit('${r.id}','postedAt',this.value)"></td>
-        <td style="text-align:center;">${rankCell}</td>
-        <td class="rank-cell-ro">${escapeHtml(r.title || '')}</td>
-        <td class="rank-num">${numCell(r.likeCount)}</td>
-        <td class="rank-num">${numCell(r.commentCount)}</td>
-        <td class="rank-num">${numCell(r.viewCount)}</td>
-        <td class="rank-num">${numCell(r.exposed)}</td>
-        <td class="rank-col-act"><button class="rank-del" onclick="rankDeleteRow('${r.id}')" title="삭제">✕</button></td>
-      </tr>`;
+    body = rows.map(r => {
+      const cells = cols.map(c => rankCellHtml(c, r)).join('');
+      return `<tr>${cells}<td class="rank-col-act"><button class="rank-del" onclick="rankDeleteRow('${r.id}')" title="삭제">✕</button></td></tr>`;
     }).join('');
   }
+  const colg = cols.map(c => `<col style="width:${c.w}px">`).join('') + '<col style="width:44px">';
+  const thead = cols.map(c => `<th>${escapeHtml(c.title)}</th>`).join('') + '<th class="rank-col-act"></th>';
+
   area.innerHTML = `<table class="rank-table">
-    <colgroup>
-      <col style="width:96px"><col style="width:120px">
-      <col style="width:62px"><col style="width:96px"><col style="width:100px">
-      <col style="width:373px"><col style="width:72px"><col style="width:72px">
-      <col style="width:72px"><col style="width:72px"><col style="width:44px">
-    </colgroup>
-    <thead><tr>
-      <th>키워드</th><th>URL</th>
-      <th>종류</th><th>게시일</th><th>상위노출 순위</th><th>제목</th>
-      <th>공감수</th><th>댓글수</th><th>조회수</th><th>노출</th><th class="rank-col-act"></th>
-    </tr></thead>
+    <colgroup>${colg}</colgroup>
+    <thead><tr>${thead}</tr></thead>
     <tbody>${body}</tbody>
   </table>`;
 }
