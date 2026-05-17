@@ -2449,19 +2449,16 @@ async function saveRank(notify) {
   }
 }
 
-// 순위만 초기화 — 키워드·URL·게시일은 그대로 두고
-// 크롤링 결과(순위·종류·제목·확인시각)만 비운다
+// 순위만 초기화 — 오직 rank 값만 비운다.
+// 제목·종류·게시일·공감수·댓글수·조회수·노출·확인시각 등 나머지는 모두 그대로.
 async function resetRankRanks() {
   if (!_rankState || !(_rankState.rows || []).length) {
     alert('초기화할 데이터가 없습니다.');
     return;
   }
-  if (!confirm('모든 행의 순위·제목·확인시각을 초기화합니다.\n키워드·URL은 그대로 유지됩니다. 계속할까요?')) return;
+  if (!confirm('모든 행의 순위만 초기화합니다.\n(제목·공감수 등 나머지 값은 그대로 유지) 계속할까요?')) return;
   for (const r of _rankState.rows) {
     r.rank = null;
-    r.kind = '';
-    r.title = '';
-    r.checkedAt = null;
   }
   renderRankTable();
   await saveRank(true);
