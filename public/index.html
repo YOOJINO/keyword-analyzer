@@ -2486,7 +2486,7 @@ function rankCellHtml(col, r) {
     let c;
     if (r.rank && r.rank > 0) c = `<span class="rank-badge">${r.rank}</span>`;
     else if (r.checkedAt) c = '<span class="rank-none">노출 없음</span>';
-    else c = '<span class="rank-none">—</span>';
+    else c = '';
     return `<td style="text-align:center;">${c}</td>`;
   }
   if (col.key === 'title') {
@@ -2747,6 +2747,8 @@ async function applyRankReset() {
                   viewCount: null, exposed: null };
   for (const r of _rankState.rows) {
     for (const f of fields) r[f] = EMPTY[f];
+    // 순위를 초기화하면 확인시각도 비운다 ('노출 없음' 대신 빈칸으로 보이도록)
+    if (fields.includes('rank')) r.checkedAt = null;
   }
   closeRankResetModal();
   renderRankTable();
