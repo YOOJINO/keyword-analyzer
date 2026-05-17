@@ -798,10 +798,10 @@ body.view-rank #resultArea{display:none !important;}
         <div class="rankm-label">여러 건 한번에</div>
         <div class="rankm-hint">
           한 줄에 한 건씩, <b>키워드 · URL · 게시일</b> 순서로 입력하세요.
-          엑셀·구글시트에서 셀을 복사해 그대로 붙여넣거나, 직접 입력 시 쉼표(,)로 구분합니다.
+          엑셀·구글시트에서 셀을 복사해 그대로 붙여넣거나, 직접 입력 시 띄어쓰기로 구분합니다.
         </div>
         <textarea class="excl-textarea" id="rankmBulk" rows="7"
-          placeholder="안티칼알파, https://blog.naver.com/aaa/111, 2026-05-01&#10;안티칼알파, https://cafe.naver.com/bbb/222, 2026-05-02"></textarea>
+          placeholder="안티칼알파 https://blog.naver.com/aaa/111 2026-05-01&#10;안티칼알파 https://cafe.naver.com/bbb/222 2026-05-02"></textarea>
         <div class="rankm-actions">
           <button class="rank-btn primary" onclick="rankAddMulti()">모두 추가</button>
         </div>
@@ -2392,7 +2392,7 @@ async function rankAddMulti() {
   if (!lines.length) { alert('붙여넣을 내용을 입력해주세요.'); return; }
   let added = 0;
   for (const line of lines) {
-    const parts = (line.includes('\t') ? line.split('\t') : line.split(',')).map(s => s.trim());
+    const parts = (line.includes('\t') ? line.split('\t') : line.split(/\s+/)).map(s => s.trim()).filter(Boolean);
     const kw = parts[0] || '', url = parts[1] || '', date = parts[2] || '';
     if (!kw && !url) continue;
     _rankState.rows.push(rankNewRow(kw, url, date));
