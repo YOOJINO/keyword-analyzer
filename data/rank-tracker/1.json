@@ -1,31 +1,21 @@
 {
   "rows": [
     {
-      "id": "r_1779031335145_671rj7",
+      "id": "r_1779036209828_by0fhu",
       "keyword": "안티칼알파",
-      "url": "https://cafe.naver.com/lovehayden/8111433?art=ZXh0ZXJuYWwtc2VydmljZS1uYXZlci1zZWFyY2gtY2FmZS1wcg.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYWZlVHlwZSI6IkNBRkVfVVJMIiwiY2FmZVVybCI6ImxvdmVoYXlkZW4iLCJhcnRpY2xlSWQiOjgxMTE0MzMsImlzc3VlZEF0IjoxNzc5MDMxMzE2MzM1fQ.fjiMiU44HrscOyeA5j9e88BuDh8LpSBaIOozcL-FjMk",
-      "kind": "",
-      "rank": null,
-      "title": "",
-      "postedAt": "2026-04-18",
-      "checkedAt": null
-    },
-    {
-      "id": "r_1779033879622_qa9d35",
-      "keyword": "안티칼 알파 naver.com 2026-03-23",
-      "url": "",
-      "kind": "",
-      "rank": null,
-      "title": "",
+      "url": "https://blog.naver.com/becky101/224261725721",
+      "kind": "블로그",
+      "rank": 6,
+      "title": "안티칼 알파 내돈내산 16kg 감량",
       "postedAt": "",
-      "checkedAt": null
+      "checkedAt": "2026-05-17T16:46:15.191Z"
     }
   ],
   "job": {
-    "status": "idle",
-    "requestedAt": null,
-    "startedAt": null,
-    "finishedAt": null,
-    "message": ""
+    "status": "done",
+    "requestedAt": "2026-05-17T16:43:58.970Z",
+    "startedAt": "2026-05-17T16:46:04.759Z",
+    "finishedAt": "2026-05-17T16:46:15.191Z",
+    "message": "1개 키워드 확인 완료"
   }
 }
