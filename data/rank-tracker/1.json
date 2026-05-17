@@ -12,10 +12,10 @@
     }
   ],
   "job": {
-    "status": "pending",
+    "status": "running",
     "requestedAt": "2026-05-17T16:43:58.970Z",
-    "startedAt": null,
+    "startedAt": "2026-05-17T16:46:04.759Z",
     "finishedAt": null,
-    "message": "크롤링 워커 대기 중…"
+    "message": "확장프로그램에서 크롤링 중…"
   }
 }
