@@ -5,10 +5,10 @@
       "keyword": "덱카닉정",
       "url": "https://cafe.naver.com/move79/6060840?art=ZXh0ZXJuYWwtc2VydmljZS1uYXZlci1zZWFyY2gtY2FmZS1wcg.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYWZlVHlwZSI6IkNBRkVfVVJMIiwiY2FmZVVybCI6Im1vdmU3OSIsImFydGljbGVJZCI6NjA2MDg0MCwiaXNzdWVkQXQiOjE3NzkwMzgzODE3NzN9.x1dxWv9sBsghDN9dAQZDK57DsaoL0X5iyH2H1JYnBxg",
       "kind": "카페",
-      "rank": null,
-      "title": "",
+      "rank": 5,
+      "title": "덱카닉정 정체기 때문에 판매자랑 상담했네요",
       "postedAt": "",
-      "checkedAt": null,
+      "checkedAt": "2026-05-17T19:16:02.047Z",
       "likeCount": null,
       "commentCount": null,
       "viewCount": null,
@@ -16,10 +16,10 @@
     }
   ],
   "job": {
-    "status": "running",
+    "status": "done",
     "requestedAt": null,
     "startedAt": "2026-05-17T19:15:49.144Z",
-    "finishedAt": null,
-    "message": "확장프로그램에서 크롤링 중…"
+    "finishedAt": "2026-05-17T19:16:02.047Z",
+    "message": "1개 키워드 확인 완료"
   }
 }
