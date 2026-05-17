@@ -52,7 +52,13 @@
       "PowerShell(pip install Pillow)",
       "PowerShell(\\(Get-Content \"C:\\\\Users\\\\유진오\\\\Documents\\\\GitHub\\\\viral-marketing-lab\\\\public\\\\index.html\" | Measure-Object -Line\\).Lines)",
       "Bash(Get-ChildItem -Path . -Directory)",
-      "Bash(Select-Object -ExpandProperty Name)"
+      "Bash(Select-Object -ExpandProperty Name)",
+      "Bash(git -C \"c:\\\\Users\\\\유진오\\\\Documents\\\\GitHub\\\\viral-marketing-lab\" remote -v)",
+      "PowerShell($p = \"c:\\\\Users\\\\유진오\\\\Documents\\\\GitHub\\\\viral-marketing-lab\\\\worker\\\\.env\"; if \\(Test-Path $p\\) { Write-Output \"worker/.env 파일 있음 — 아래는 키 이름만 \\(값 숨김\\):\"; Get-Content $p | Where-Object { $_ -match '=' } | ForEach-Object { \\($_ -split '=',2\\)[0] } } else { Write-Output \"worker/.env 파일 없음 \\(아직 워커 설정 안 함\\)\" })",
+      "Bash(cd /tmp)",
+      "Bash(curl -s -A \"Mozilla/5.0 \\(iPhone; CPU iPhone OS 16_6 like Mac OS X\\) AppleWebKit/605.1.15 \\(KHTML, like Gecko\\) Version/16.6 Mobile/15E148 Safari/604.1\" \"https://m.search.naver.com/search.naver?query=%EC%95%88%ED%8B%B0%EC%B9%BC%EC%95%8C%ED%8C%8C\" -o naver.html)",
+      "Bash(python3 -)",
+      "Bash(python -)"
     ],
     "additionalDirectories": [
       "g:\\내 드라이브\\1. 구매대행\\1.4 기타\\1. SW\\002 소싱\\소싱 관련 프로그램",
