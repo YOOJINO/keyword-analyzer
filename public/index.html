@@ -404,6 +404,8 @@ body.view-rank #resultArea{display:none !important;}
 .rank-btn:hover{background:var(--gray-1);}
 .rank-btn.primary{background:var(--blue);color:#fff;border-color:var(--blue);}
 .rank-btn.primary:hover{background:var(--blue-mid);}
+.rank-btn.green{background:var(--green);color:#fff;border-color:var(--green);}
+.rank-btn.green:hover{background:#009a59;}
 .rank-btn:disabled{opacity:.5;cursor:not-allowed;}
 .rank-job{font-size:12px;font-weight:600;padding:4px 11px;border-radius:999px;}
 .rank-job.idle{background:var(--gray-2);color:var(--gray-6);}
@@ -417,6 +419,7 @@ body.view-rank #resultArea{display:none !important;}
 .rank-table input{width:100%;border:none;background:transparent;font:inherit;font-size:13px;padding:3px;outline:none;border-radius:4px;}
 .rank-table input:focus{background:var(--blue-light);}
 .rank-cell-ro{color:var(--gray-6);}
+.rank-num{text-align:center;color:var(--gray-7);font-weight:500;}
 .rank-badge{display:inline-block;min-width:26px;text-align:center;font-weight:700;color:var(--blue);}
 .rank-none{color:var(--gray-4);font-size:12px;}
 .rank-del{color:var(--red);cursor:pointer;border:none;background:none;font-size:15px;line-height:1;}
@@ -696,8 +699,9 @@ body.view-rank #resultArea{display:none !important;}
         <span style="margin-left:auto;"></span>
         <button class="rank-btn" onclick="openRankAddModal()">+ 행 추가</button>
         <button class="rank-btn" id="rankSaveBtn" onclick="saveRank(true)">저장</button>
+        <button class="rank-btn" id="rankResetBtn" onclick="resetRankRanks()">순위 초기화</button>
         <button class="rank-btn primary" id="rankRefreshBtn" onclick="loadRankData()">새로고침</button>
-        <button class="rank-btn" id="rankExcelBtn" onclick="downloadRankExcel()">엑셀 다운</button>
+        <button class="rank-btn green" id="rankExcelBtn" onclick="downloadRankExcel()">엑셀 다운</button>
       </div>
       <div class="rank-hint" style="margin-top:8px;">
         키워드와 URL을 입력해 두면, 확장프로그램 '상위노출 추적' 탭이 네이버 통합검색을 확인해 순위·제목을 채웁니다. 채워진 결과는 <b>새로고침</b>으로 불러옵니다.
@@ -2266,8 +2270,10 @@ function renderRankTable() {
   if (!_rankState) return;
   const rows = _rankState.rows || [];
   let body;
+  // 공감수·댓글수·조회수 — 확장프로그램 크롤러가 채우는 값. 없으면 — 표시
+  const numCell = v => (v == null || v === '') ? '<span class="rank-none">—</span>' : String(v);
   if (!rows.length) {
-    body = '<tr><td colspan="8" class="rank-empty">+ 행 추가 버튼으로 키워드와 URL을 입력하세요</td></tr>';
+    body = '<tr><td colspan="11" class="rank-empty">+ 행 추가 버튼으로 키워드와 URL을 입력하세요</td></tr>';
   } else {
     body = rows.map((r, i) => {
       let rankCell;
@@ -2280,24 +2286,29 @@ function renderRankTable() {
              oninput="rankEdit('${r.id}','keyword',this.value)"></td>
         <td><input value="${escapeHtml(r.url)}" placeholder="https://blog.naver.com/..."
              oninput="rankEdit('${r.id}','url',this.value)"></td>
+        <td class="rank-cell-ro" id="rankkind_${r.id}">${escapeHtml(r.kind || rankKindFromUrl(r.url))}</td>
         <td><input value="${escapeHtml(r.postedAt || '')}" placeholder="게시일"
              oninput="rankEdit('${r.id}','postedAt',this.value)"></td>
-        <td class="rank-cell-ro" id="rankkind_${r.id}">${escapeHtml(r.kind || rankKindFromUrl(r.url))}</td>
         <td style="text-align:center;">${rankCell}</td>
         <td class="rank-cell-ro">${escapeHtml(r.title || '')}</td>
+        <td class="rank-num">${numCell(r.likeCount)}</td>
+        <td class="rank-num">${numCell(r.commentCount)}</td>
+        <td class="rank-num">${numCell(r.viewCount)}</td>
         <td class="rank-col-act"><button class="rank-del" onclick="rankDeleteRow('${r.id}')" title="삭제">✕</button></td>
       </tr>`;
     }).join('');
   }
   area.innerHTML = `<table class="rank-table">
     <colgroup>
-      <col style="width:40px"><col style="width:96px"><col style="width:240px">
-      <col style="width:96px"><col style="width:62px"><col style="width:100px">
-      <col style="width:560px"><col style="width:44px">
+      <col style="width:40px"><col style="width:96px"><col style="width:120px">
+      <col style="width:62px"><col style="width:96px"><col style="width:100px">
+      <col style="width:560px"><col style="width:72px"><col style="width:72px">
+      <col style="width:72px"><col style="width:44px">
     </colgroup>
     <thead><tr>
       <th class="rank-col-no">#</th><th>키워드</th><th>URL</th>
-      <th>게시일</th><th>종류</th><th>상위노출 순위</th><th>제목</th><th class="rank-col-act"></th>
+      <th>종류</th><th>게시일</th><th>상위노출 순위</th><th>제목</th>
+      <th>공감수</th><th>댓글수</th><th>조회수</th><th class="rank-col-act"></th>
     </tr></thead>
     <tbody>${body}</tbody>
   </table>`;
@@ -2438,6 +2449,24 @@ async function saveRank(notify) {
   }
 }
 
+// 순위만 초기화 — 키워드·URL·게시일은 그대로 두고
+// 크롤링 결과(순위·종류·제목·확인시각)만 비운다
+async function resetRankRanks() {
+  if (!_rankState || !(_rankState.rows || []).length) {
+    alert('초기화할 데이터가 없습니다.');
+    return;
+  }
+  if (!confirm('모든 행의 순위·제목·확인시각을 초기화합니다.\n키워드·URL은 그대로 유지됩니다. 계속할까요?')) return;
+  for (const r of _rankState.rows) {
+    r.rank = null;
+    r.kind = '';
+    r.title = '';
+    r.checkedAt = null;
+  }
+  renderRankTable();
+  await saveRank(true);
+}
+
 // 현재 표를 엑셀(CSV)로 내려받기 — UTF-8 BOM 으로 한글 깨짐 방지
 function downloadRankExcel() {
   const rows = (_rankState && _rankState.rows) || [];
@@ -2445,7 +2474,7 @@ function downloadRankExcel() {
     alert('내보낼 데이터가 없습니다.');
     return;
   }
-  const headers = ['#', '키워드', 'URL', '게시일', '종류', '상위노출 순위', '제목', '최근 확인'];
+  const headers = ['#', '키워드', 'URL', '종류', '게시일', '상위노출 순위', '제목', '공감수', '댓글수', '조회수', '최근 확인'];
   const cell = v => {
     const s = String(v == null ? '' : v);
     return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
@@ -2460,10 +2489,13 @@ function downloadRankExcel() {
       i + 1,
       r.keyword || '',
       r.url || '',
-      r.postedAt || '',
       r.kind || rankKindFromUrl(r.url),
+      r.postedAt || '',
       rankVal,
       r.title || '',
+      r.likeCount == null ? '' : r.likeCount,
+      r.commentCount == null ? '' : r.commentCount,
+      r.viewCount == null ? '' : r.viewCount,
       r.checkedAt ? rankFmtTime(r.checkedAt) : '',
     ].map(cell).join(','));
   });
