@@ -12,10 +12,10 @@
     }
   ],
   "job": {
-    "status": "idle",
-    "requestedAt": null,
+    "status": "pending",
+    "requestedAt": "2026-05-17T16:43:58.970Z",
     "startedAt": null,
     "finishedAt": null,
-    "message": ""
+    "message": "크롤링 워커 대기 중…"
   }
 }
