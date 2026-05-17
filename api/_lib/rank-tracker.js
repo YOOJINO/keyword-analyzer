@@ -41,10 +41,11 @@ function ensureRow(r) {
     title: (r && r.title) || '',
     postedAt: (r && r.postedAt) || '',
     checkedAt: (r && r.checkedAt) || null,
-    // 공감수 / 댓글수 / 조회수 — 확장프로그램 크롤러가 채움
+    // 공감수 / 댓글수 / 조회수 / 노출 — 확장프로그램 크롤러가 채움
     likeCount: (r && typeof r.likeCount === 'number') ? r.likeCount : null,
     commentCount: (r && typeof r.commentCount === 'number') ? r.commentCount : null,
     viewCount: (r && typeof r.viewCount === 'number') ? r.viewCount : null,
+    exposed: (r && r.exposed != null) ? r.exposed : null,
   };
 }
 
