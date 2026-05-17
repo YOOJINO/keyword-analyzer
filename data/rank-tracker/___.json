@@ -16,10 +16,10 @@
     }
   ],
   "job": {
-    "status": "idle",
+    "status": "running",
     "requestedAt": null,
-    "startedAt": null,
+    "startedAt": "2026-05-17T19:15:49.144Z",
     "finishedAt": null,
-    "message": ""
+    "message": "확장프로그램에서 크롤링 중…"
   }
 }
