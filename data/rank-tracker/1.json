@@ -4,18 +4,18 @@
       "id": "r_1779036209828_by0fhu",
       "keyword": "안티칼알파",
       "url": "https://blog.naver.com/becky101/224261725721",
-      "kind": "",
-      "rank": null,
-      "title": "",
+      "kind": "블로그",
+      "rank": 6,
+      "title": "안티칼 알파 내돈내산 16kg 감량",
       "postedAt": "",
-      "checkedAt": null
+      "checkedAt": "2026-05-17T16:46:15.191Z"
     }
   ],
   "job": {
-    "status": "running",
+    "status": "done",
     "requestedAt": "2026-05-17T16:43:58.970Z",
     "startedAt": "2026-05-17T16:46:04.759Z",
-    "finishedAt": null,
-    "message": "확장프로그램에서 크롤링 중…"
+    "finishedAt": "2026-05-17T16:46:15.191Z",
+    "message": "1개 키워드 확인 완료"
   }
 }
