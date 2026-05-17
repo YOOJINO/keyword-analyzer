@@ -411,7 +411,7 @@ body.view-rank #resultArea{display:none !important;}
 .rank-job.running{background:var(--blue-light);color:var(--blue);}
 .rank-job.done{background:var(--green-light);color:var(--green);}
 .rank-job.error{background:var(--red-light);color:var(--red);}
-.rank-table{width:100%;border-collapse:collapse;font-size:13px;}
+.rank-table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed;}
 .rank-table th,.rank-table td{border:1px solid var(--gray-2);padding:7px 9px;text-align:left;vertical-align:middle;}
 .rank-table th{background:var(--gray-1);font-weight:600;color:var(--gray-6);white-space:nowrap;}
 .rank-table input{width:100%;border:none;background:transparent;font:inherit;font-size:13px;padding:3px;outline:none;border-radius:4px;}
@@ -424,6 +424,14 @@ body.view-rank #resultArea{display:none !important;}
 .rank-empty{text-align:center;padding:40px 20px;color:var(--gray-5);font-size:13px;}
 .rank-col-no{width:42px;text-align:center;color:var(--gray-5);}
 .rank-col-act{width:44px;text-align:center;}
+.rank-cell-ro{word-break:break-word;}
+.rankm-label{font-size:13px;font-weight:700;color:var(--gray-7);margin-bottom:8px;}
+.rankm-hint{font-size:12px;color:var(--gray-5);margin-bottom:8px;line-height:1.5;}
+.rankm-single{display:flex;gap:8px;flex-wrap:wrap;}
+.rankm-single input{flex:1;min-width:130px;border:1px solid var(--gray-3);border-radius:7px;padding:8px 10px;font-size:13px;font-family:inherit;outline:none;}
+.rankm-single input:focus{border-color:var(--blue);}
+.rankm-divider{height:1px;background:var(--gray-2);margin:18px 0;}
+.rankm-actions{display:flex;justify-content:flex-end;margin-top:10px;}
 </style>
 </head>
 <body>
@@ -686,12 +694,12 @@ body.view-rank #resultArea{display:none !important;}
         <span class="rank-job idle" id="rankJobBadge">대기 없음</span>
         <span class="rank-hint" id="rankCheckedAt"></span>
         <span style="margin-left:auto;"></span>
-        <button class="rank-btn" onclick="rankAddRow()">+ 행 추가</button>
+        <button class="rank-btn" onclick="openRankAddModal()">+ 행 추가</button>
         <button class="rank-btn" id="rankSaveBtn" onclick="saveRank(true)">저장</button>
-        <button class="rank-btn primary" id="rankTriggerBtn" onclick="triggerRankCrawl()">순위 갱신</button>
+        <button class="rank-btn primary" id="rankTriggerBtn" onclick="triggerRankCrawl()">추적하기</button>
       </div>
       <div class="rank-hint" style="margin-top:8px;">
-        키워드와 URL을 입력하고 <b>순위 갱신</b>을 누르면, 연결된 크롤링 PC가 네이버 통합검색을 확인해 순위·제목을 자동으로 채웁니다. (PC가 켜져 있어야 처리됩니다)
+        키워드와 URL을 입력하고 <b>추적하기</b>를 누르면, 연결된 크롤링 PC가 네이버 통합검색을 확인해 순위·제목을 자동으로 채웁니다. (PC가 켜져 있어야 처리됩니다)
       </div>
     </div></div>
     <div class="card"><div class="card-body" style="padding:0;overflow:auto;">
@@ -764,6 +772,40 @@ body.view-rank #resultArea{display:none !important;}
           <label class="vo-check"><input type="checkbox" data-newperm="rank" checked> 상위노출 추적</label>
         </div>
       </form>
+    </div>
+  </div>
+</div>
+
+<!-- 상위노출 추적 — 행 추가 모달 -->
+<div class="modal-bg" id="rankAddModal" onclick="if(event.target===this)closeRankAddModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">행 추가</span>
+      <button class="modal-close" onclick="closeRankAddModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="rankm-section">
+        <div class="rankm-label">한 건 입력</div>
+        <div class="rankm-single">
+          <input type="text" id="rankmKw" placeholder="키워드" onkeydown="if(event.key==='Enter')rankAddSingle()">
+          <input type="text" id="rankmUrl" placeholder="URL (blog.naver.com/...)" onkeydown="if(event.key==='Enter')rankAddSingle()">
+          <input type="text" id="rankmDate" placeholder="게시일 (선택)" onkeydown="if(event.key==='Enter')rankAddSingle()">
+          <button class="rank-btn primary" onclick="rankAddSingle()">추가</button>
+        </div>
+      </div>
+      <div class="rankm-divider"></div>
+      <div class="rankm-section">
+        <div class="rankm-label">여러 건 한번에</div>
+        <div class="rankm-hint">
+          한 줄에 한 건씩, <b>키워드 · URL · 게시일</b> 순서로 입력하세요.
+          엑셀·구글시트에서 셀을 복사해 그대로 붙여넣거나, 직접 입력 시 쉼표(,)로 구분합니다.
+        </div>
+        <textarea class="excl-textarea" id="rankmBulk" rows="7"
+          placeholder="안티칼알파, https://blog.naver.com/aaa/111, 2026-05-01&#10;안티칼알파, https://cafe.naver.com/bbb/222, 2026-05-02"></textarea>
+        <div class="rankm-actions">
+          <button class="rank-btn primary" onclick="rankAddMulti()">모두 추가</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -2237,7 +2279,8 @@ function renderRankTable() {
              oninput="rankEdit('${r.id}','keyword',this.value)"></td>
         <td><input value="${escapeHtml(r.url)}" placeholder="https://blog.naver.com/..."
              oninput="rankEdit('${r.id}','url',this.value)"></td>
-        <td class="rank-cell-ro">${escapeHtml(r.postedAt || '')}</td>
+        <td><input value="${escapeHtml(r.postedAt || '')}" placeholder="게시일"
+             oninput="rankEdit('${r.id}','postedAt',this.value)"></td>
         <td class="rank-cell-ro">${escapeHtml(r.kind || '')}</td>
         <td style="text-align:center;">${rankCell}</td>
         <td class="rank-cell-ro">${escapeHtml(r.title || '')}</td>
@@ -2246,6 +2289,11 @@ function renderRankTable() {
     }).join('');
   }
   area.innerHTML = `<table class="rank-table">
+    <colgroup>
+      <col style="width:40px"><col style="width:96px"><col style="width:240px">
+      <col style="width:96px"><col style="width:62px"><col style="width:100px">
+      <col style="width:560px"><col style="width:44px">
+    </colgroup>
     <thead><tr>
       <th class="rank-col-no">#</th><th>키워드</th><th>URL</th>
       <th>게시일</th><th>종류</th><th>상위노출 순위</th><th>제목</th><th class="rank-col-act"></th>
@@ -2264,7 +2312,7 @@ function renderRankJob() {
   badge.textContent = RANK_JOB_LABEL[job.status] || job.status;
   const busy = job.status === 'pending' || job.status === 'running';
   trigger.disabled = busy;
-  trigger.textContent = busy ? '갱신 중…' : '순위 갱신';
+  trigger.textContent = busy ? '추적 중…' : '추적하기';
   // 마지막 확인 시각 = 행 중 가장 최근 checkedAt
   let last = null;
   for (const r of (_rankState.rows || [])) {
@@ -2289,13 +2337,58 @@ function rankEdit(id, field, value) {
   if (row) row[field] = value;
 }
 
-function rankAddRow() {
-  if (!_rankState) _rankState = { rows: [], job: { status: 'idle' } };
-  _rankState.rows.push({
+function rankNewRow(keyword, url, postedAt) {
+  return {
     id: 'r_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
-    keyword: '', url: '', kind: '', rank: null, title: '', postedAt: '', checkedAt: null,
-  });
+    keyword: (keyword || '').trim(), url: (url || '').trim(),
+    kind: '', rank: null, title: '', postedAt: (postedAt || '').trim(), checkedAt: null,
+  };
+}
+
+function openRankAddModal() {
+  if (!_rankState) _rankState = { rows: [], job: { status: 'idle' } };
+  document.getElementById('rankmKw').value = '';
+  document.getElementById('rankmUrl').value = '';
+  document.getElementById('rankmDate').value = '';
+  document.getElementById('rankmBulk').value = '';
+  document.getElementById('rankAddModal').classList.add('open');
+  document.getElementById('rankmKw').focus();
+}
+
+function closeRankAddModal() {
+  document.getElementById('rankAddModal').classList.remove('open');
+}
+
+// 단건 입력 → 행 1개 추가
+async function rankAddSingle() {
+  const kw = document.getElementById('rankmKw').value.trim();
+  const url = document.getElementById('rankmUrl').value.trim();
+  const date = document.getElementById('rankmDate').value.trim();
+  if (!kw && !url) { alert('키워드 또는 URL을 입력해주세요.'); return; }
+  _rankState.rows.push(rankNewRow(kw, url, date));
   renderRankTable();
+  closeRankAddModal();
+  await saveRank(false);
+}
+
+// 멀티 입력 → 한 줄에 한 행씩 (탭 또는 쉼표 구분)
+async function rankAddMulti() {
+  const text = document.getElementById('rankmBulk').value;
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  if (!lines.length) { alert('붙여넣을 내용을 입력해주세요.'); return; }
+  let added = 0;
+  for (const line of lines) {
+    const parts = (line.includes('\t') ? line.split('\t') : line.split(',')).map(s => s.trim());
+    const kw = parts[0] || '', url = parts[1] || '', date = parts[2] || '';
+    if (!kw && !url) continue;
+    _rankState.rows.push(rankNewRow(kw, url, date));
+    added++;
+  }
+  if (!added) { alert('인식된 행이 없습니다. 형식을 확인해주세요.'); return; }
+  renderRankTable();
+  closeRankAddModal();
+  await saveRank(false);
+  alert(added + '개 행을 추가했습니다.');
 }
 
 function rankDeleteRow(id) {
@@ -2341,7 +2434,7 @@ async function triggerRankCrawl() {
   }
   // 입력 내용을 먼저 저장한 뒤 트리거
   if (!await saveRank(false)) return;
-  if (!confirm('순위 갱신을 요청합니다.\n연결된 크롤링 PC가 켜져 있어야 처리됩니다. 계속할까요?')) return;
+  if (!confirm('추적을 요청합니다.\n연결된 크롤링 PC가 켜져 있어야 처리됩니다. 계속할까요?')) return;
   const btn = document.getElementById('rankTriggerBtn');
   btn.disabled = true;
   try {
