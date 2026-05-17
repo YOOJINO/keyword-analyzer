@@ -696,10 +696,11 @@ body.view-rank #resultArea{display:none !important;}
         <span style="margin-left:auto;"></span>
         <button class="rank-btn" onclick="openRankAddModal()">+ 행 추가</button>
         <button class="rank-btn" id="rankSaveBtn" onclick="saveRank(true)">저장</button>
-        <button class="rank-btn primary" id="rankTriggerBtn" onclick="triggerRankCrawl()">추적하기</button>
+        <button class="rank-btn primary" id="rankRefreshBtn" onclick="loadRankData()">새로고침</button>
+        <button class="rank-btn" id="rankExcelBtn" onclick="downloadRankExcel()">엑셀 다운</button>
       </div>
       <div class="rank-hint" style="margin-top:8px;">
-        키워드와 URL을 입력하고 <b>추적하기</b>를 누르면, 연결된 크롤링 PC가 네이버 통합검색을 확인해 순위·제목을 자동으로 채웁니다. (PC가 켜져 있어야 처리됩니다)
+        키워드와 URL을 입력해 두면, 확장프로그램 '상위노출 추적' 탭이 네이버 통합검색을 확인해 순위·제목을 채웁니다. 채워진 결과는 <b>새로고침</b>으로 불러옵니다.
       </div>
     </div></div>
     <div class="card"><div class="card-body" style="padding:0;overflow:auto;">
@@ -2306,13 +2307,9 @@ function renderRankJob() {
   if (!_rankState) return;
   const badge = document.getElementById('rankJobBadge');
   const info = document.getElementById('rankCheckedAt');
-  const trigger = document.getElementById('rankTriggerBtn');
   const job = _rankState.job || { status: 'idle' };
   badge.className = 'rank-job ' + (job.status || 'idle');
   badge.textContent = RANK_JOB_LABEL[job.status] || job.status;
-  const busy = job.status === 'pending' || job.status === 'running';
-  trigger.disabled = busy;
-  trigger.textContent = busy ? '추적 중…' : '추적하기';
   // 마지막 확인 시각 = 행 중 가장 최근 checkedAt
   let last = null;
   for (const r of (_rankState.rows || [])) {
@@ -2441,32 +2438,45 @@ async function saveRank(notify) {
   }
 }
 
-async function triggerRankCrawl() {
-  if (!_rankState || !_rankState.rows.length) {
-    alert('추적할 키워드/URL을 먼저 입력해주세요.');
+// 현재 표를 엑셀(CSV)로 내려받기 — UTF-8 BOM 으로 한글 깨짐 방지
+function downloadRankExcel() {
+  const rows = (_rankState && _rankState.rows) || [];
+  if (!rows.length) {
+    alert('내보낼 데이터가 없습니다.');
     return;
   }
-  // 입력 내용을 먼저 저장한 뒤 트리거
-  if (!await saveRank(false)) return;
-  if (!confirm('추적을 요청합니다.\n연결된 크롤링 PC가 켜져 있어야 처리됩니다. 계속할까요?')) return;
-  const btn = document.getElementById('rankTriggerBtn');
-  btn.disabled = true;
-  try {
-    const resp = await fetch('/api/rank-tracker', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'trigger' }),
-    });
-    const data = await resp.json();
-    if (!resp.ok) throw new Error(data.error || '요청 실패');
-    _rankState = data;
-    renderRankTable();
-    renderRankJob();
-    rankAutoPoll();
-  } catch (err) {
-    alert('요청 실패: ' + err.message);
-    btn.disabled = false;
-  }
+  const headers = ['#', '키워드', 'URL', '게시일', '종류', '상위노출 순위', '제목', '최근 확인'];
+  const cell = v => {
+    const s = String(v == null ? '' : v);
+    return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const lines = [headers.map(cell).join(',')];
+  rows.forEach((r, i) => {
+    let rankVal;
+    if (r.rank && r.rank > 0) rankVal = r.rank;
+    else if (r.checkedAt) rankVal = '노출 없음';
+    else rankVal = '';
+    lines.push([
+      i + 1,
+      r.keyword || '',
+      r.url || '',
+      r.postedAt || '',
+      r.kind || rankKindFromUrl(r.url),
+      rankVal,
+      r.title || '',
+      r.checkedAt ? rankFmtTime(r.checkedAt) : '',
+    ].map(cell).join(','));
+  });
+  const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `상위노출_추적_${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
 }
 
 // 작업이 진행 중일 때만 주기적으로 상태를 다시 읽어 화면 갱신
