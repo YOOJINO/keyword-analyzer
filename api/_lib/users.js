@@ -18,7 +18,7 @@ export async function findUser(id) {
   return users.find(u => u.id === id) || null;
 }
 
-const ALL_PERMS = ['category', 'keyword', 'competitor'];
+const ALL_PERMS = ['category', 'keyword', 'competitor', 'rank'];
 
 function normalizePerms(role, perms) {
   if (role === 'admin') return ALL_PERMS;
