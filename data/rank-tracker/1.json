@@ -12,10 +12,10 @@
     }
   ],
   "job": {
-    "status": "done",
+    "status": "running",
     "requestedAt": "2026-05-17T16:43:58.970Z",
-    "startedAt": "2026-05-17T16:46:04.759Z",
+    "startedAt": "2026-05-17T16:58:06.463Z",
     "finishedAt": "2026-05-17T16:46:15.191Z",
-    "message": "1개 키워드 확인 완료"
+    "message": "확장프로그램에서 크롤링 중…"
   }
 }
