@@ -156,10 +156,10 @@
     }
   ],
   "job": {
-    "status": "done",
+    "status": "running",
     "requestedAt": "2026-05-17T16:43:58.970Z",
-    "startedAt": "2026-05-18T12:15:29.359Z",
+    "startedAt": "2026-05-18T12:15:50.374Z",
     "finishedAt": "2026-05-18T12:15:36.280Z",
-    "message": "2개 키워드 확인 완료"
+    "message": "확장프로그램에서 크롤링 중…"
   }
 }
